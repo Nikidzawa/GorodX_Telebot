@@ -11,6 +11,7 @@ import ru.nikidzawa.datingapp.store.entities.complaint.ComplaintEntity;
 import ru.nikidzawa.datingapp.store.entities.error.ErrorEntity;
 import ru.nikidzawa.datingapp.store.entities.like.LikeContentType;
 import ru.nikidzawa.datingapp.store.entities.like.LikeEntity;
+import ru.nikidzawa.datingapp.store.entities.user.RoleEnum;
 import ru.nikidzawa.datingapp.store.entities.user.UserAvatar;
 import ru.nikidzawa.datingapp.store.entities.user.UserDetailsEntity;
 import ru.nikidzawa.datingapp.store.entities.user.UserEntity;
@@ -71,13 +72,11 @@ public class StateMachine {
 //        textStates.put(StateEnum.WELCOME_BACK_HANDLE, new WelcomeBackHandle());
 
         textStates.put(StateEnum.ASK_BEFORE_OFF, new AskBeforeOff());
-        //todo
         textStates.put(StateEnum.LEFT, new Left());
 
         textStates.put(StateEnum.ASK_NAME, new AskName());
         textStates.put(StateEnum.ASK_AGE, new AskAge());
         textStates.put(StateEnum.ASK_CITY, new AskCity());
-        textStates.put(StateEnum.ASK_HOBBY, new AskHobby());
         textStates.put(StateEnum.ASK_ABOUT_ME, new AskAboutMe());
         textStates.put(StateEnum.ASK_AVATAR, new FinishRegisterAddAvatar());
         textStates.put(StateEnum.RESULT, new Result());
@@ -89,7 +88,6 @@ public class StateMachine {
         textStates.put(StateEnum.EDIT_NAME, new EditName());
         textStates.put(StateEnum.EDIT_AGE, new EditAge());
         textStates.put(StateEnum.EDIT_CITY, new EditCity());
-        textStates.put(StateEnum.EDIT_HOBBY, new EditHobby());
         textStates.put(StateEnum.EDIT_ABOUT_ME, new EditAboutMe());
         textStates.put(StateEnum.EDIT_AVATAR, new FinishEditAvatar());
         textStates.put(StateEnum.EDIT_RESULT, new EditResult());
@@ -152,7 +150,7 @@ public class StateMachine {
             if (like.isReciprocity()) {
                 UserEntity likedUser = dataBaseService.getUserById(like.getLikeSender()).get();
                 botFunctions.sendMessageAndRemoveKeyboard(userId, "Есть взаимная симпатия!");
-                botFunctions.sendOtherProfile(userId, likedUser, myProfile);
+                botFunctions.sendDatingProfile(userId, likedUser, myProfile);
                 String userName = botFunctions.getUsernameByUserId(likedUser.getId());
                 botFunctions.sendMessageAndComplainButton(userId, likedUser.getId(), "Желаю вам хорошо провести время :)\nhttps://t.me/" + userName);
                 likeList.remove(like);
@@ -171,7 +169,7 @@ public class StateMachine {
             if (message.getText().equals("Начнём!")) {
                 cacheService.setState(userId, StateEnum.ASK_NAME);
                 cacheService.putCachedUser(userId, new UserEntity(userId));
-                botFunctions.sendMessageAndRemoveKeyboard(userId, messages.getASK_NAME());
+                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_NAME(), botFunctions.customButton(message.getFrom().getFirstName()));
             }
         }
     }
@@ -190,7 +188,7 @@ public class StateMachine {
             }
             botFunctions.sendMessageAndKeyboard(userId,
                     likeCountText +
-                            "2. Начать поиск подруг ✨\n" +
+                            "2. Начать поиск ✨\n" +
                             "3. Моя анкета\n" +
                             "4. Выключить анкету",
                     botFunctions.superMenuButtons());
@@ -207,7 +205,7 @@ public class StateMachine {
                     .toList();
             if (!filteredList.isEmpty()) {
                 UserEntity recommendationUser = filteredList.getFirst();
-                botFunctions.sendOtherProfile(userId, recommendationUser, userEntity);
+                botFunctions.sendDatingProfile(userId, recommendationUser, userEntity);
                 cacheService.putUserAssessmentId(userId, recommendationUser.getId());
                 cacheService.setState(userId, StateEnum.FIND_PEOPLES);
             } else {
@@ -233,6 +231,7 @@ public class StateMachine {
                 user.setActive(false);
                 dataBaseService.saveUser(user);
             });
+            cacheService.evictAllUserCache(userId);
             cacheService.evictState(userId);
         }
     }
@@ -248,8 +247,7 @@ public class StateMachine {
 
             if (hasBeenRegistered) {
                 botFunctions.sendMessageAndKeyboard(userId, messages.getASK_CITY(), botFunctions.customLocationButtons(userEntity.getLocation()));
-            }
-            else {
+            } else {
                 botFunctions.sendMessageAndKeyboard(userId, messages.getASK_CITY(), botFunctions.locationButton());
             }
 
@@ -325,33 +323,8 @@ public class StateMachine {
             }
             user.setAge(age);
             cacheService.putCachedUser(userId, user);
-            if (hasBeenRegistered && userEntity.getHobby() != null) {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_HOBBY(), botFunctions.skipAndCustomButtons(messages.getUNEDITED_HOBBY()));
-            } else {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_HOBBY(), botFunctions.skipButton());
-            }
-            cacheService.setState(userId, StateEnum.ASK_HOBBY);
-        }
-    }
-    private class AskHobby implements State {
-        @Override
-        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-            String messageText = message.getText();
-            if (messageText.length() >= 150) {
-                botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getASK_HOBBY());
-                return;
-            }
-            if (!messageText.equals("Пропустить")) {
-                UserEntity user = cacheService.getCachedUser(userId);
-                if (messageText.equals("Оставить текущие хобби") && userEntity != null) {
-                    user.setHobby(userEntity.getHobby());
-                } else {
-                    user.setHobby(messageText);
-                }
-                cacheService.putCachedUser(userId, user);
-            }
             if (hasBeenRegistered && userEntity.getAboutMe() != null) {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_ABOUT_ME(), botFunctions.skipAndCustomButtons(messages.getUNEDITED_ABOUT_ME()));
+                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_ABOUT_ME(), botFunctions.skipAndCustomButtons(messages.getSKIP_EDIT()));
             } else {
                 botFunctions.sendMessageAndKeyboard(userId, messages.getASK_ABOUT_ME(), botFunctions.skipButton());
             }
@@ -377,7 +350,7 @@ public class StateMachine {
                 cacheService.putCachedUser(userId, user);
             }
             if (hasBeenRegistered) {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_AVATAR(), botFunctions.customButton(messages.getSKIP_ADD_AVATAR()));
+                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_AVATAR(), botFunctions.customButton(messages.getSKIP_EDIT()));
             } else {
                 botFunctions.sendMessageAndRemoveKeyboard(userId, messages.getASK_AVATAR());
             }
@@ -401,7 +374,7 @@ public class StateMachine {
             int avatarSize = avatars.size();
             cacheService.putCachedUser(userId, cachedUser);
             if (hasBeenRegistered) {
-                botFunctions.sendMessageAndKeyboard(userId, "Фотография загружена ( " + avatarSize + " из 3 )", botFunctions.customButton(messages.getSKIP_ADD_AVATAR(), messages.getSTOP_ADD_AVATAR()));
+                botFunctions.sendMessageAndKeyboard(userId, "Фотография загружена ( " + avatarSize + " из 3 )", botFunctions.customButton(messages.getSKIP_EDIT(), messages.getSTOP_ADD_AVATAR()));
             } else {
                 botFunctions.sendMessageAndKeyboard(userId, "Фотография загружена ( " + avatarSize + " из 3 )", botFunctions.customButton(messages.getSTOP_ADD_AVATAR()));
             }
@@ -437,7 +410,7 @@ public class StateMachine {
             int avatarSize = avatars.size();
             cacheService.putCachedUser(userId, cachedUser);
             if (hasBeenRegistered) {
-                botFunctions.sendMessageAndKeyboard(userId, "Видео загружено ( " + avatarSize + " из 3 )", botFunctions.customButton(messages.getSKIP_ADD_AVATAR(), messages.getSTOP_ADD_AVATAR()));
+                botFunctions.sendMessageAndKeyboard(userId, "Видео загружено ( " + avatarSize + " из 3 )", botFunctions.customButton(messages.getSKIP_EDIT(), messages.getSTOP_ADD_AVATAR()));
             } else {
                 botFunctions.sendMessageAndKeyboard(userId, "Видео загружено ( " + avatarSize + " из 3 )", botFunctions.customButton(messages.getSTOP_ADD_AVATAR()));
             }
@@ -518,7 +491,7 @@ public class StateMachine {
         UserEntity likeSender = dataBaseService.getUserById(like.getLikeSender()).get();
         if (likeSender.isActive() && !likeSender.isBanned()) {
             botFunctions.sendMessageAndKeyboard(userId, "Твоя анкета кому-то понравилась!", botFunctions.reciprocityButtons());
-            botFunctions.sendOtherProfile(userId, likeSender, myProfile);
+            botFunctions.sendDatingProfile(userId, likeSender, myProfile);
             if (like.getLikeContentType() != null) {
                 botFunctions.sendMessage.get(like.getLikeContentType()).handleInput(userId, like);
             }
@@ -535,9 +508,9 @@ public class StateMachine {
 
         public Menu() {
             responses = new HashMap<>();
-            responses.put("1", new FindPeoples());
-            responses.put("2", new MyProfile());
-            responses.put("3", new OffProfile());
+            responses.put("1 \uD83D\uDE80", new FindPeoples());
+            responses.put("2 \uD83E\uDDD1\u200D\uD83E\uDDB1", new MyProfile());
+            responses.put("3 \uD83D\uDCA4", new OffProfile());
         }
 
         private class FindPeoples implements State {
@@ -576,10 +549,10 @@ public class StateMachine {
 
         public SuperMenu () {
             superMenuStates = new HashMap<>();
-            superMenuStates.put("1", new ShowWhoLikedMe());
-            superMenuStates.put("2", new FindPeople());
-            superMenuStates.put("3", new MyProfile());
-            superMenuStates.put("4", new OffProfile());
+            superMenuStates.put("1 ❤", new ShowWhoLikedMe());
+            superMenuStates.put("2 \uD83D\uDE80", new FindPeople());
+            superMenuStates.put("3 \uD83E\uDDD1\u200D\uD83E\uDDB1", new MyProfile());
+            superMenuStates.put("4 \uD83D\uDCA4", new OffProfile());
         }
 
         private class ShowWhoLikedMe implements State {
@@ -716,10 +689,9 @@ public class StateMachine {
                 Geocode geocode = jsonParser.parseGeocode(externalApi.getCoordinates(messageText));
                 userEntity.setLongitude(geocode.getLon());
                 userEntity.setLatitude(geocode.getLat());
-                goToEditResult(userId, userEntity);
-            } else {
-                returnProfileWithoutChanges(userId, userEntity);
+                dataBaseService.saveUser(userEntity);
             }
+            goToProfile(userId, userEntity);
         }
     }
     private class EditCityGeo implements State {
@@ -735,33 +707,8 @@ public class StateMachine {
             userEntity.setLocation(city);
             userEntity.setShowGeo(true);
 
-            goToEditResult(userId, userEntity);
-        }
-    }
-
-    private class EditHobby implements State {
-        @Override
-        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-            String messageText = message.getText();
-            UserEntity cachedUser = cacheService.getCachedUser(userId);
-            if (!messageText.equals(messages.getUNEDITED_HOBBY()) && !messageText.equals("Пропустить")) {
-                if (messageText.length() >= 150) {
-                    botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getHOBBY_LIMIT_SYMBOLS_EXCEPTIONS());
-                    return;
-                }
-                if (messageText.equals("Убрать")) {
-                    cachedUser.setHobby(null);
-                } else {
-                    cachedUser.setHobby(messageText);
-                }
-            }
-            if (userEntity.getAboutMe() == null) {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_ABOUT_ME(), botFunctions.skipButton());
-            } else {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_ABOUT_ME(), botFunctions.removeAndCustomButtons(messages.getUNEDITED_ABOUT_ME()));
-            }
-            cacheService.putCachedUser(userId, cachedUser);
-            cacheService.setState(userId, StateEnum.EDIT_ABOUT_ME);
+            dataBaseService.saveUser(userEntity);
+            goToProfile(userId, userEntity);
         }
     }
 
@@ -769,23 +716,19 @@ public class StateMachine {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
             String messageText = message.getText();
-            UserEntity cachedUser = cacheService.getCachedUser(userId);
-            if (!messageText.equals(messages.getUNEDITED_ABOUT_ME()) && !messageText.equals("Пропустить")) {
+            if (!messageText.equals(messages.getSKIP_EDIT())) {
                 if (messageText.length() >= 1000) {
                     botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getABOUT_ME_LIMIT_SYMBOLS_EXCEPTIONS());
                     return;
                 }
                 if (messageText.equals("Убрать")) {
-                    cachedUser.setAboutMe(null);
+                    userEntity.setAboutMe(null);
                 } else {
-                    cachedUser.setAboutMe(messageText);
+                    userEntity.setAboutMe(messageText);
                 }
+                dataBaseService.saveUser(userEntity);
             }
-            if (Objects.equals(cachedUser.getHobby(),userEntity.getHobby()) && Objects.equals(cachedUser.getAboutMe(), userEntity.getAboutMe())) {
-                returnProfileWithoutChanges(userId, userEntity);
-            } else {
-                goToEditResult(userId, cachedUser);
-            }
+            goToProfile(userId, userEntity);
         }
     }
 
@@ -846,6 +789,7 @@ public class StateMachine {
     }
 
     private void goToProfile(Long userId, UserEntity userEntity) {
+        botFunctions.sendMessageNotRemoveKeyboard(userId, "Так выглядит твоя анкета");
         botFunctions.sendDatingProfile(userId, userEntity);
         botFunctions.sendMessageAndKeyboard(userId, messages.getMY_PROFILE(), botFunctions.myProfileButtons());
         cacheService.setState(userId, StateEnum.MY_PROFILE);
@@ -1013,6 +957,7 @@ public class StateMachine {
                 dataBaseService.saveUserDetails(
                         UserDetailsEntity.builder()
                                 .id(userEntity.getId())
+                                .role(RoleEnum.USER)
                                 .build()
                 );
                 cacheService.evictCachedUser(userId);
@@ -1044,11 +989,11 @@ public class StateMachine {
         public MyProfile() {
             answers = new HashMap<>();
             answers.put("БИО", new BIO());
-            answers.put("Хобби, о себе", new Hobby());
+            answers.put("О себе", new AboutMe());
             answers.put("Город", new City());
             answers.put("Фото", new Photo());
             answers.put("Изменить анкету полностью", new FullEdit());
-            answers.put("Вернуться в меню", new Menu());
+            answers.put("\uD83D\uDEAA Вернуться в меню", new Menu());
         }
 
         @Override
@@ -1070,17 +1015,16 @@ public class StateMachine {
             }
         }
 
-        public class Hobby implements State {
+        public class AboutMe implements State {
 
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-                if (userEntity.getHobby() == null) {
-                    botFunctions.sendMessageAndKeyboard(userId, messages.getASK_HOBBY(), botFunctions.skipButton());
+                if (userEntity.getAboutMe() == null) {
+                    botFunctions.sendMessageAndKeyboard(userId, messages.getASK_ABOUT_ME(), botFunctions.customButton(messages.getSKIP_EDIT()));
                 } else {
-                    botFunctions.sendMessageAndKeyboard(userId, messages.getASK_HOBBY(), botFunctions.removeAndCustomButtons(messages.getUNEDITED_HOBBY()));
+                    botFunctions.sendMessageAndKeyboard(userId, messages.getASK_ABOUT_ME(), botFunctions.removeAndCustomButtons(messages.getSKIP_EDIT()));
                 }
-                cacheService.setState(userId, StateEnum.EDIT_HOBBY);
-                cacheService.putCachedUser(userId, userEntity);
+                cacheService.setState(userId, StateEnum.EDIT_ABOUT_ME);
             }
         }
 
@@ -1097,7 +1041,7 @@ public class StateMachine {
 
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getEDIT_PHOTO(), botFunctions.customButton(messages.getSKIP_ADD_AVATAR()));
+                botFunctions.sendMessageAndKeyboard(userId, messages.getEDIT_PHOTO(), botFunctions.customButton(messages.getSKIP_EDIT()));
                 cacheService.setState(userId, StateEnum.EDIT_AVATAR);
                 userEntity.setUserAvatars(new ArrayList<>());
                 cacheService.putCachedUser(userId, userEntity);

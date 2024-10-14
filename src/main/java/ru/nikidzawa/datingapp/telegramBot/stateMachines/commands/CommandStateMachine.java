@@ -61,8 +61,6 @@ public class CommandStateMachine {
         String messageText = message.getText();
         CommandState commandState = null;
 
-        RoleEnum currentUserRole = dataBaseService.getUserDetails(userId).getRole();
-
         // Если пользователь не зарегистрирован, доступна только команда /start
         if (!hasBeenRegistered) {
             if (messageText.equals("/start")) {
@@ -71,9 +69,13 @@ public class CommandStateMachine {
             } else {
                 botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getNOT_REGISTER());
             }
+            return;
         }
+
+        RoleEnum currentUserRole = dataBaseService.getUserDetails(userId).getRole();
+
         // Команды для пользователей
-        else if (currentUserRole == RoleEnum.USER) {
+        if (currentUserRole == RoleEnum.USER) {
             commandState = userCommands.get(messageText);
             if (commandState != null) {
                 commandState.handleInput(userId, message, userEntity, hasBeenRegistered);
@@ -104,7 +106,7 @@ public class CommandStateMachine {
                     "Жалоба номер: " + complainEntity.getId() +
                             "\nОбщее число жалоб на пользователя: " + dataBaseService.getComplainCountByUser(complainEntity.getComplaintUserId())
             );
-            botFunctions.sendDatingProfileWithoutDistance(userId, complainUser);
+            botFunctions.sendDatingProfile(userId, complainUser);
             botFunctions.sendMessageAndKeyboard(userId,
                     "Описание жалобы: " + complainEntity.getDescription(),
                     botFunctions.judgeButtons(complainEntity.getComplaintUserId())

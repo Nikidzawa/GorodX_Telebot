@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 spring:
   profiles:
     active: default
@@ -39,14 +39,11 @@ spring:
   data:
     redis:
       host: redis
-  cache:
-    redis:
-      time-to-live: 21600000
 
 --- ## ДАННЫЕ О БОТЕ ##
 
-BOT_LOGIN: "@Leonadro_Dayvinchick_bot"
-BOT_TOKEN: "6892584290:AAEqe_WDIf1oRBZW5kVOgg2OjIBPK9mPihA"
+BOT_LOGIN: "@GorodX_HMAO_bot"
+BOT_TOKEN: "7910888745:AAH1Pr_ZpBUETfWEtBu7OUqZgE4JIE9uX08"
 
 --- ## CООБЩЕНИЯ ##
 
@@ -54,7 +51,6 @@ BOT_TOKEN: "6892584290:AAEqe_WDIf1oRBZW5kVOgg2OjIBPK9mPihA"
 ASK_NAME: Как тебя зовут?
 ASK_AGE: Сколько тебе лет?
 ASK_CITY: Откуда ты?
-ASK_HOBBY: Перечисли свои хобби через запятую
 ASK_ABOUT_ME: Можешь дополнительно рассказать о себе, или о том, кого хочешь найти
 ASK_AVATAR: Давай загрузим аватарки для твоей анкеты. Отправляй поочередно фотографии или видео, можно загрузить не более 3-х файлов
 RESULT: Вот твоя анкета
@@ -68,17 +64,15 @@ EDIT_RESULT: Так будет выглядеть твоя анкета
 NULL_DATA_EDIT: Вы ничего не изменили, возвращаемся в профиль
 STOP_ADD_AVATAR: Готово
 SKIP_ADD_AVATAR: Не изменять
-UNEDITED_HOBBY: Оставить текущие хобби
-UNEDITED_ABOUT_ME: Оставить текущую информацию
 
 #MENU
 MENU:
-  1. Начать поиск подруг ✨
+  1. Начать поиск ✨
   
   2. Моя анкета
   
   3. Выключить анкету
-MY_PROFILE: Выбери категорию, которую хочешь изменить
+MY_PROFILE: Выбери что хочешь изменить
 
 #LEFT GROUP OR DISABLE PROFILE
 ASK_BEFORE_OFF: Ты уверена, что хочешь отключить свою анкету?

@@ -8,7 +8,6 @@ public enum StateEnum {
     ASK_NAME,
     ASK_AGE,
     ASK_CITY,
-    ASK_HOBBY,
     ASK_ABOUT_ME,
     ASK_AVATAR,
     RESULT,
@@ -21,7 +20,6 @@ public enum StateEnum {
     //
     EDIT_CITY,
     //
-    EDIT_HOBBY,
     EDIT_ABOUT_ME,
     //
     EDIT_AVATAR,

@@ -81,7 +81,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             // Проверка на то, включена ли анкета
             if (hasBeenRegistered && !userEntity.isActive()) {
-                botFunctions.sendMessageNotRemoveKeyboard(userId, "Мы ждали твоего возвращения, твоя анкета снова включена. Удачи в поисках ;)");
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Мы ждали твоего возвращения. Твоя анкета снова включена, удачи в поисках \uD83D\uDE09");
                 cacheService.evictAllUserCacheWithoutState(userId);
                 userEntity.setActive(true);
                 dataBaseService.saveUser(userEntity);

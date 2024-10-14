@@ -144,11 +144,9 @@ public class BotFunctions {
     }
 
 
-    private static SendMediaGroup getSendMediaGroup(Long userId, UserEntity userEntity) {
-        List<UserAvatar> avatars = userEntity.getUserAvatars();
-
+    private static SendMediaGroup getSendMediaGroup(Long userId, List<UserAvatar> userAvatars) {
         List<InputMedia> inputMedia = new ArrayList<>();
-        avatars.forEach(userAvatar -> {
+        userAvatars.forEach(userAvatar -> {
             if (userAvatar.isPhoto()) {
                 inputMedia.add(new InputMediaPhoto(userAvatar.getFile()));
             } else {
@@ -161,9 +159,9 @@ public class BotFunctions {
                 .build();
     }
 
-    public ReplyKeyboardMarkup menuButtons() {return keyboardMarkupBuilder(List.of("1", "2", "3"));}
+    public ReplyKeyboardMarkup menuButtons() {return keyboardMarkupBuilder(List.of("1 \uD83D\uDE80", "2 \uD83E\uDDD1\u200D\uD83E\uDDB1", "3 \uD83D\uDCA4"));}
 
-    public ReplyKeyboardMarkup superMenuButtons() {return keyboardMarkupBuilder(List.of("1", "2", "3", "4"));}
+    public ReplyKeyboardMarkup superMenuButtons() {return keyboardMarkupBuilder(List.of("1 ❤", "2 \uD83D\uDE80", "3 \uD83E\uDDD1\u200D\uD83E\uDDB1", "4 \uD83D\uDCA4"));}
 
     public ReplyKeyboardMarkup resultButtons() {return keyboardMarkupBuilder(List.of("Заполнить анкету заново", "Продолжить"));}
 
@@ -177,13 +175,13 @@ public class BotFunctions {
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow firstRow = new KeyboardRow();
         firstRow.add("БИО");
-        firstRow.add("Хобби, о себе");
+        firstRow.add("О себе");
         firstRow.add("Город");
         KeyboardRow secondRow = new KeyboardRow();
         secondRow.add("Фото");
         KeyboardRow thirdRow = new KeyboardRow();
         thirdRow.add("Изменить анкету полностью");
-        thirdRow.add("Вернуться в меню");
+        thirdRow.add("\uD83D\uDEAA Вернуться в меню");
         keyboardRows.add(firstRow);
         keyboardRows.add(secondRow);
         keyboardRows.add(thirdRow);
@@ -301,7 +299,7 @@ public class BotFunctions {
 
     public ReplyKeyboardMarkup faqResponseButtons() {return keyboardMarkupBuilder(List.of("Назад", "Вернуться в меню"));}
 
-    public ReplyKeyboardMarkup restartButton() {return keyboardMarkupBuilder(List.of("/start"));}
+    public ReplyKeyboardMarkup restartButton() {return keyboardMarkupBuilder(List.of("Включить анкету"));}
 
     public ReplyKeyboardMarkup searchButtons() {return keyboardMarkupBuilder(List.of("❤", "\uD83D\uDC8C", "\uD83D\uDC4E", "\uD83D\uDCA4"));}
 
@@ -371,107 +369,50 @@ public class BotFunctions {
 
     @SneakyThrows
     public void sendDatingProfile(Long userId, UserEntity userEntity) {
-        CompletableFuture<String> parseHobbyFuture = CompletableFuture.supplyAsync(() -> {
-            String hobby = userEntity.getHobby();
-            if (hobby != null) {
-                return parseHobby(hobby);
-            }
-            return "";
-        });
-
-        CompletableFuture<List<UserAvatar>> userAvatarsFuture = CompletableFuture.supplyAsync(userEntity::getUserAvatars);
-
-        CompletableFuture<String> profileInfoFuture = parseHobbyFuture.thenApplyAsync(hobby -> {
-            String aboutMe = userEntity.getAboutMe();
-            String userName = userEntity.getName();
-            String age = String.valueOf(userEntity.getAge());
-            String location = userEntity.getLocation();
-            return userName + ", " + age + ", " + location + hobby + (aboutMe == null ? "" : "\n" + aboutMe);
-        });
-
-        profileInfoFuture.thenAccept(profileInfo -> loadUserAvatars(userId, userEntity, profileInfo, userAvatarsFuture)).join();
+        sendUserProfile(userId, userEntity, getUserInfo(userEntity, ""));
     }
 
     @SneakyThrows
-    public void sendDatingProfileWithoutDistance(Long userId, UserEntity userEntity) {
+    public void sendDatingProfile(Long userId, UserEntity anotherUser, UserEntity myProfile) {
+        String distance = "";
+        if (myProfile.isShowGeo() && anotherUser.isShowGeo()) {
+            distance = getDistance(anotherUser, myProfile);
+        }
+        sendUserProfile(userId, anotherUser, getUserInfo(anotherUser, distance));
+    }
 
-        CompletableFuture<String> parseHobbyFuture = CompletableFuture.supplyAsync(() -> {
-            String hobby = userEntity.getHobby();
-            if (hobby != null) {
-                return parseHobby(hobby);
-            }
-            return "";
-        });
 
-        CompletableFuture<List<UserAvatar>> userAvatarsFuture = CompletableFuture.supplyAsync(userEntity::getUserAvatars);
-
-        CompletableFuture<String> profileInfoFuture = CompletableFuture.allOf(parseHobbyFuture)
-                .thenApplyAsync(ignored -> {
-                    String aboutMe = userEntity.getAboutMe();
-                    String userName = userEntity.getName();
-                    String age = String.valueOf(userEntity.getAge());
-                    String location = userEntity.getLocation();
-                    String hobby = parseHobbyFuture.join();
-                    return userName + ", " + age + ", " + location + hobby + (aboutMe == null ? "" : "\n" + aboutMe);
-                });
-        profileInfoFuture.thenAccept(profileInfo -> loadUserAvatars(userId, userEntity, profileInfo, userAvatarsFuture)).join();
+    private String getUserInfo(UserEntity userEntity, String distance) {
+        String aboutMe = userEntity.getAboutMe();
+        String userName = userEntity.getName();
+        String age = String.valueOf(userEntity.getAge());
+        String location = userEntity.getLocation();
+        return userName + ", " + age + ", " + location + distance + (aboutMe == null ? "" : "\n" + aboutMe);
     }
 
     @SneakyThrows
-    private void loadUserAvatars(Long userId, UserEntity userEntity, String profileInfo, CompletableFuture<List<UserAvatar>> userAvatarsFuture) {
-        List<UserAvatar> userAvatars = userAvatarsFuture.get();
+    private void sendUserProfile(Long userId, UserEntity userEntity, String profileInfo) {
+        List<UserAvatar> userAvatars = userEntity.getUserAvatars();
         if (userAvatars.size() > 1) {
-            SendMediaGroup sendMediaGroup = getSendMediaGroup(userId, userEntity);
+            SendMediaGroup sendMediaGroup = getSendMediaGroup(userId, userAvatars);
             sendMediaGroup.getMedias().getFirst().setCaption(profileInfo);
             telegramBot.execute(sendMediaGroup);
         } else {
-            UserAvatar firstAvatar = userAvatars.getFirst();
-            if (firstAvatar.isPhoto()) {
+            UserAvatar userAvatar = userAvatars.getFirst();
+            if (userAvatar.isPhoto()) {
                 telegramBot.execute(SendPhoto.builder()
                         .chatId(userId)
-                        .photo(getInputFile(firstAvatar.getFile()))
+                        .photo(getInputFile(userAvatar.getFile()))
                         .caption(profileInfo)
                         .build());
             } else {
                 telegramBot.execute(SendVideo.builder()
                         .chatId(userId)
-                        .video(getInputFile(firstAvatar.getFile()))
+                        .video(getInputFile(userAvatar.getFile()))
                         .caption(profileInfo)
                         .build());
             }
         }
-    }
-
-    @SneakyThrows
-    public void sendOtherProfile(Long userId, UserEntity anotherUser, UserEntity myProfile) {
-        CompletableFuture<String> distanceFuture = CompletableFuture.supplyAsync(() -> {
-            if (myProfile.isShowGeo() && anotherUser.isShowGeo()) {
-                return getDistance(anotherUser, myProfile);
-            }
-            return "";
-        });
-
-        CompletableFuture<String> parseHobbyFuture = CompletableFuture.supplyAsync(() -> {
-            String hobby = anotherUser.getHobby();
-            if (hobby != null) {
-                return parseHobby(hobby);
-            }
-            return "";
-        });
-
-        CompletableFuture<List<UserAvatar>> userAvatarsFuture = CompletableFuture.supplyAsync(anotherUser::getUserAvatars);
-
-        CompletableFuture<String> profileInfoFuture = CompletableFuture.allOf(distanceFuture, parseHobbyFuture)
-                .thenApplyAsync(ignored -> {
-                    String aboutMe = anotherUser.getAboutMe();
-                    String userName = anotherUser.getName();
-                    String age = String.valueOf(anotherUser.getAge());
-                    String location = anotherUser.getLocation();
-                    String distance = distanceFuture.join();
-                    String hobby = parseHobbyFuture.join();
-                    return userName + ", " + age + ", " + location + distance + hobby + (aboutMe == null ? "" : "\n" + aboutMe);
-                });
-        profileInfoFuture.thenAccept(profileInfo -> loadUserAvatars(userId, anotherUser, profileInfo, userAvatarsFuture)).join();
     }
 
     private String getDistance(UserEntity anotherUser, UserEntity me) {
@@ -508,20 +449,6 @@ public class BotFunctions {
             meters = (int) round(distance);
             return " \uD83D\uDCCD" + meters + " км";
         }
-    }
-
-    private String parseHobby(String allHobby) {
-        StringBuilder stringBuilder = new StringBuilder();
-        String[] hobbyArray = allHobby.split(",");
-        stringBuilder.append("\nМои хобби:");
-        for (String hobby : hobbyArray) {
-            String trimmedHobby = hobby.trim();
-            if (!trimmedHobby.isEmpty()) {
-                char firstChar = Character.toUpperCase(trimmedHobby.charAt(0));
-                stringBuilder.append("\n").append("● ").append(firstChar).append(trimmedHobby.substring(1));
-            }
-        }
-        return stringBuilder.toString();
     }
 
     @SneakyThrows

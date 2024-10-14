@@ -32,9 +32,6 @@ public class UserEntity implements Serializable {
 
     String location;
 
-    @Column(length = 150)
-    String hobby;
-
     @Column(length = 1000)
     String aboutMe;
 

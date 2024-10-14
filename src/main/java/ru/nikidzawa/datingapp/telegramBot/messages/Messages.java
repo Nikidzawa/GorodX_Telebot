@@ -15,8 +15,6 @@ public class Messages {
     String ASK_AGE;
     @Value("${ASK_CITY}")
     String ASK_CITY;
-    @Value("${ASK_HOBBY}")
-    String ASK_HOBBY;
     @Value("${ASK_ABOUT_ME}")
     String ASK_ABOUT_ME;
     @Value("${ASK_AVATAR}")
@@ -40,11 +38,7 @@ public class Messages {
     @Value("${STOP_ADD_AVATAR}")
     String STOP_ADD_AVATAR;
     @Value("${SKIP_ADD_AVATAR}")
-    String SKIP_ADD_AVATAR;
-    @Value("${UNEDITED_HOBBY}")
-    String UNEDITED_HOBBY;
-    @Value("${UNEDITED_ABOUT_ME}")
-    String UNEDITED_ABOUT_ME;
+    String SKIP_EDIT;
     @Value("${ASK_BEFORE_OFF}")
     String ASK_BEFORE_OFF;
 
