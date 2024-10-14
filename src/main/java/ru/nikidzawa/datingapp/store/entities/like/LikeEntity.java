@@ -3,12 +3,12 @@ package ru.nikidzawa.datingapp.store.entities.like;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import ru.nikidzawa.datingapp.store.entities.user.UserEntity;
 
 import java.io.Serializable;
 import java.util.Objects;
 
 @Entity
+@Table(name = "like_data")
 @Getter
 @Setter
 @Builder
@@ -20,11 +20,9 @@ public class LikeEntity implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "liker_id")
-    UserEntity likedUser;
+    long likeReceiver;
 
-    long likerUserId;
+    long likeSender;
 
     @Column(length = 2000)
     String content;

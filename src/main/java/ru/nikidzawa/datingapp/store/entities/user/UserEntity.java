@@ -1,18 +1,15 @@
 package ru.nikidzawa.datingapp.store.entities.user;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import ru.nikidzawa.datingapp.store.entities.complain.ComplainEntity;
-import ru.nikidzawa.datingapp.store.entities.like.LikeEntity;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 @Entity
+@Table(name = "user_data")
 @Getter
 @Setter
 @Builder
@@ -51,18 +48,8 @@ public class UserEntity implements Serializable {
 
     boolean isBanned = false;
 
-    String email;
-
-    @OneToMany(fetch = FetchType.EAGER)
+    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     List<UserAvatar> userAvatars;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "likedUser", fetch = FetchType.EAGER)
-    List<LikeEntity> likesGiven = new ArrayList<>();
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "complaintUser", fetch = FetchType.LAZY)
-    List<ComplainEntity> complaints = new ArrayList<>();
 
     @Override
     public boolean equals(Object o) {

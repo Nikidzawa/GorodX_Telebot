@@ -3,11 +3,11 @@ package ru.nikidzawa.datingapp.telegramBot.stateMachines.callBacks;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.nikidzawa.datingapp.store.entities.complain.ComplainEntity;
+import ru.nikidzawa.datingapp.store.entities.complaint.ComplaintEntity;
 import ru.nikidzawa.datingapp.store.entities.user.UserEntity;
 import ru.nikidzawa.datingapp.telegramBot.botFunctions.BotFunctions;
 import ru.nikidzawa.datingapp.telegramBot.cache.CacheService;
-import ru.nikidzawa.datingapp.telegramBot.helpers.Messages;
+import ru.nikidzawa.datingapp.telegramBot.messages.Messages;
 import ru.nikidzawa.datingapp.telegramBot.services.DataBaseService;
 import ru.nikidzawa.datingapp.telegramBot.stateMachines.commands.CommandStateMachine;
 import ru.nikidzawa.datingapp.telegramBot.stateMachines.mainStates.StateEnum;
@@ -61,28 +61,30 @@ public class CallBacksStateMachine {
     private class Block implements CallBack {
 
         @Override
-        public void handleCallback(Long myId, Long anotherUserId) {
+        public void handleCallback(Long myId, Long complaintUserId) {
             botFunctions.sendMessageAndRemoveKeyboard(myId, messages.getBLOCK());
-            UserEntity complaintUser = dataBaseService.getUserById(anotherUserId).get();
-            List<ComplainEntity> complainEntities = dataBaseService.findByComplaintUser(complaintUser);
-            complaintUser.setComplaints(null);
+            List<ComplaintEntity> complaintEntities = dataBaseService.findByComplaintUser(complaintUserId);
+            dataBaseService.deleteAllComplainEntities(complaintEntities);
+
+            UserEntity complaintUser = dataBaseService.getUserById(complaintUserId).get();
             complaintUser.setBanned(true);
             dataBaseService.saveUser(complaintUser);
-            dataBaseService.deleteAllComplainEntities(complainEntities);
+
             commandStateMachine.getComplaint(myId);
         }
     }
     private class Peace implements CallBack {
 
         @Override
-        public void handleCallback(Long myId, Long anotherUserId) {
+        public void handleCallback(Long myId, Long complaintUserId) {
             botFunctions.sendMessageAndRemoveKeyboard(myId, messages.getPEACE());
-            UserEntity complaintUser = dataBaseService.getUserById(anotherUserId).get();
-            List<ComplainEntity> complainEntities = dataBaseService.findByComplaintUser(complaintUser);
-            complaintUser.setComplaints(null);
+            List<ComplaintEntity> complaintEntities = dataBaseService.findByComplaintUser(complaintUserId);
+            dataBaseService.deleteAllComplainEntities(complaintEntities);
+
+            UserEntity complaintUser = dataBaseService.getUserById(complaintUserId).get();
             complaintUser.setBanned(false);
             dataBaseService.saveUser(complaintUser);
-            dataBaseService.deleteAllComplainEntities(complainEntities);
+
             commandStateMachine.getComplaint(myId);
         }
     }

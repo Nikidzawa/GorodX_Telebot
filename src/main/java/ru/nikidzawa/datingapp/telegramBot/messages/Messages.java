@@ -1,4 +1,4 @@
-package ru.nikidzawa.datingapp.telegramBot.helpers;
+package ru.nikidzawa.datingapp.telegramBot.messages;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,6 +81,8 @@ public class Messages {
     String ROLE_EXCEPTION;
     @Value("${NOT_ENOUGH}")
     String NOT_ENOUGH;
+    @Value("${ERROR}")
+    String ERROR;
 
     //COMMANDS
     @Value("${FAQ}")
@@ -91,10 +93,18 @@ public class Messages {
     String FAQ_2;
     @Value("${SEND_COMPLAINT}")
     String SEND_COMPLAINT;
+    @Value("${SUCCESS_SEND_COMPLAINT}")
+    String SUCCESS_SEND_COMPLAINT;
     @Value("${BLOCK}")
     String BLOCK;
     @Value("${PEACE}")
     String PEACE;
     @Value("${SEND_ERROR}")
     String SEND_ERROR;
+    @Value("${SUCCESS_SEND_ERROR}")
+    String SUCCESS_SEND_ERROR;
+
+    //FIND_PEOPLES
+    @Value("${SEND_LIKE_AND_MESSAGE}")
+    String SEND_LIKE_AND_MESSAGE;
 }

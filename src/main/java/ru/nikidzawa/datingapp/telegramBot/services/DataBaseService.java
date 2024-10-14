@@ -1,15 +1,16 @@
 package ru.nikidzawa.datingapp.telegramBot.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import ru.nikidzawa.datingapp.store.entities.complain.ComplainEntity;
+import ru.nikidzawa.datingapp.store.entities.complaint.ComplaintEntity;
 import ru.nikidzawa.datingapp.store.entities.error.ErrorEntity;
 import ru.nikidzawa.datingapp.store.entities.like.LikeEntity;
+import ru.nikidzawa.datingapp.store.entities.user.RoleEnum;
 import ru.nikidzawa.datingapp.store.entities.user.UserAvatar;
+import ru.nikidzawa.datingapp.store.entities.user.UserDetailsEntity;
 import ru.nikidzawa.datingapp.store.entities.user.UserEntity;
 import ru.nikidzawa.datingapp.store.repositories.*;
+import ru.nikidzawa.datingapp.telegramBot.cache.CacheService;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,18 +33,50 @@ public class DataBaseService {
     @Autowired
     private UserAvatarRepository userAvatarRepository;
 
-    @Cacheable(cacheNames = "user", key = "#id")
+    @Autowired
+    UserDetailsRepository userDetailsRepository;
+
+    @Autowired
+    private CacheService cacheService;
+
     public Optional<UserEntity> getUserById (Long id) {
-        return userRepository.findById(id);
+        Optional<UserEntity> cachedUser = cacheService.getUserFromCache(id);
+        if (cachedUser.isEmpty()) {
+            Optional<UserEntity> userEntity = userRepository.findById(id);
+            cacheService.putUserInCache(id, userEntity.orElse(new UserEntity()));
+            return userEntity;
+        } else {
+            return cachedUser;
+        }
     }
 
-    @CachePut(cacheNames = "user", key = "#user.id")
-    public UserEntity saveUser (UserEntity user) {
+    public UserEntity saveUser(UserEntity user) {
+        cacheService.putUserInCache(user.getId(), user);
         return userRepository.saveAndFlush(user);
     }
 
-    public List<UserAvatar> saveAllUserAvatars (List<UserAvatar> userAvatars) {
-        return userAvatarRepository.saveAllAndFlush(userAvatars);
+    public void saveUserDetails(UserDetailsEntity userDetails) {
+        userDetailsRepository.saveAndFlush(userDetails);
+        cacheService.putUserDetailsInCache(userDetails.getId(), userDetails);
+    }
+
+    public UserDetailsEntity getUserDetails(Long userId) {
+        Optional<UserDetailsEntity> optionalUserDetails = cacheService.getUserDetailsFromCache(userId);
+        if (optionalUserDetails.isEmpty()) {
+            Optional<UserDetailsEntity> userDetailsEntity = userDetailsRepository.findById(userId);
+            cacheService.putUserDetailsInCache(userId, userDetailsEntity.get());
+            return userDetailsEntity.get();
+        } else {
+            return optionalUserDetails.get();
+        }
+    }
+
+    public List<UserDetailsEntity> getAllUserDetailsByRole(RoleEnum role) {
+        return userDetailsRepository.findAllByRole(role);
+    }
+
+    public void saveAllUserAvatars (List<UserAvatar> userAvatars) {
+        userAvatarRepository.saveAllAndFlush(userAvatars);
     }
 
     public Long getCountActiveAndNotBannedUsers () {
@@ -58,28 +91,40 @@ public class DataBaseService {
         return likeRepository.saveAndFlush(likeEntity);
     }
 
-    public void saveComplain (ComplainEntity complainEntity) {
+    public void saveComplain(ComplaintEntity complainEntity) {
         complaintRepository.saveAndFlush(complainEntity);
     }
 
-    public List<ComplainEntity> findByComplaintUser (UserEntity complaintUser) {
-        return complaintRepository.findByComplaintUser(complaintUser);
+    public List<ComplaintEntity> findByComplaintUser(Long complaintUserId) {
+        return complaintRepository.findAllByComplaintUserId(complaintUserId);
     }
 
-    public void deleteAllComplainEntities(List<ComplainEntity> complainEntities) {
+    public void deleteAllComplainEntities(List<ComplaintEntity> complainEntities) {
         complaintRepository.deleteAll(complainEntities);
     }
 
-    public List<ComplainEntity> findAllComplaints () {
+    public List<ComplaintEntity> findAllComplaints() {
         return complaintRepository.findAll();
+    }
+
+    public Long getComplainCountByUser(Long complaintUserId) {
+        return complaintRepository.getCountComplaintsByUserId(complaintUserId);
     }
 
     public void deleteLike(Long likeId) {
         likeRepository.deleteById(likeId);
     }
 
-    public List<UserEntity> getRecommendation(UserEntity myProfile, List<Long> excludedUserIds) {
-        return userRepository.findAllOrderByDistance(myProfile.getId(), excludedUserIds, myProfile.getLongitude(), myProfile.getLatitude());
+    public List<UserEntity> getRecommendation(UserEntity myProfile) {
+        return userRepository.findAllOrderByDistance(myProfile.getId(), myProfile.getLongitude(), myProfile.getLatitude());
+    }
+
+    public Long getAllPeopleCountWhoLikeUserEntity(Long userEntityId) {
+        return likeRepository.getCountByLikeReceiver(userEntityId);
+    }
+
+    public List<LikeEntity> getAllLikeEntityByUserId(long userId) {
+        return likeRepository.findAllByLikeReceiverOrderByIdAsc(userId);
     }
 
     public void saveError (ErrorEntity errorEntity) {

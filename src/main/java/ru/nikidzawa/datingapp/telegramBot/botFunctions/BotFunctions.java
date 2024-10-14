@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaVideo;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -19,6 +20,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import ru.nikidzawa.datingapp.store.entities.like.LikeContentType;
 import ru.nikidzawa.datingapp.store.entities.like.LikeEntity;
+import ru.nikidzawa.datingapp.store.entities.user.RoleEnum;
 import ru.nikidzawa.datingapp.store.entities.user.UserAvatar;
 import ru.nikidzawa.datingapp.store.entities.user.UserEntity;
 import ru.nikidzawa.datingapp.telegramBot.TelegramBot;
@@ -30,14 +32,13 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import static java.lang.Math.*;
 
 public class BotFunctions {
+
     public final HashMap<LikeContentType, SendMessageType> sendMessage;
+
     private final TelegramBot telegramBot;
 
     private class SendMessageTypeText implements SendMessageType {
@@ -134,13 +135,14 @@ public class BotFunctions {
     }
 
     @SneakyThrows
-    public void sendMessageAndKeyboard(Long id, String message, ReplyKeyboardMarkup replyKeyboardMarkup) {
+    public void sendMessageAndKeyboard(Long id, String message, ReplyKeyboard replyKeyboardMarkup) {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(String.valueOf(id));
         sendMessage.setText(message);
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         telegramBot.execute(sendMessage);
     }
+
 
     private static SendMediaGroup getSendMediaGroup(Long userId, UserEntity userEntity) {
         List<UserAvatar> avatars = userEntity.getUserAvatars();
@@ -160,14 +162,18 @@ public class BotFunctions {
     }
 
     public ReplyKeyboardMarkup menuButtons() {return keyboardMarkupBuilder(List.of("1", "2", "3"));}
+
     public ReplyKeyboardMarkup superMenuButtons() {return keyboardMarkupBuilder(List.of("1", "2", "3", "4"));}
+
     public ReplyKeyboardMarkup resultButtons() {return keyboardMarkupBuilder(List.of("Заполнить анкету заново", "Продолжить"));}
+
     public ReplyKeyboardMarkup skipButton() {return keyboardMarkupBuilder(List.of("Пропустить"));}
+
     public ReplyKeyboardMarkup startButton() {return keyboardMarkupBuilder(List.of("Начнём!"));}
+
     public ReplyKeyboardMarkup myProfileButtons() {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(true);
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow firstRow = new KeyboardRow();
         firstRow.add("БИО");
@@ -184,10 +190,37 @@ public class BotFunctions {
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }
+
+    public ReplyKeyboardMarkup superAdminButtons() {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        replyKeyboardMarkup.setResizeKeyboard(true);
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow firstRow = new KeyboardRow();
+        firstRow.add(RoleEnum.SUPER_ADMIN.getSmile() + " Назначить создателя");
+        firstRow.add(RoleEnum.ADMIN.getSmile() + " Назначить администратора");
+        KeyboardRow secondRow = new KeyboardRow();
+        secondRow.add("⛔ Разжаловать");
+        keyboardRows.add(firstRow);
+        keyboardRows.add(secondRow);
+        replyKeyboardMarkup.setKeyboard(keyboardRows);
+        return replyKeyboardMarkup;
+    }
+
+    public ReplyKeyboardMarkup adminButtons() {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        replyKeyboardMarkup.setResizeKeyboard(true);
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow firstRow = new KeyboardRow();
+        firstRow.add(RoleEnum.ADMIN.getSmile() + " Назначить администратора");
+        firstRow.add("⛔ Разжаловать");
+        keyboardRows.add(firstRow);
+        replyKeyboardMarkup.setKeyboard(keyboardRows);
+        return replyKeyboardMarkup;
+    }
+
     public ReplyKeyboardMarkup stopShowProfilesWhoLikedMeButtons() {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(true);
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow firstRow = new KeyboardRow();
         firstRow.add("Продолжить смотреть анкеты");
@@ -198,14 +231,18 @@ public class BotFunctions {
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }
+
     public ReplyKeyboardMarkup askBeforeOffButtons() {return keyboardMarkupBuilder(List.of("Выключить анкету", "Я передумала"));}
+
     public ReplyKeyboardMarkup editResultButtons() {return keyboardMarkupBuilder(List.of("Сохранить", "Отменить"));}
+
     public ReplyKeyboardMarkup customButton(String button) {return keyboardMarkupBuilder(List.of(button));}
+
     public ReplyKeyboardMarkup customButton(String button1, String button2) {return keyboardMarkupBuilder(List.of(button1, button2));}
+
     public ReplyKeyboardMarkup locationButton() {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(true);
         List<KeyboardRow> keyboardRows = new ArrayList<>();
 
         KeyboardRow secondRow = new KeyboardRow();
@@ -217,10 +254,10 @@ public class BotFunctions {
 
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;}
+
     public ReplyKeyboardMarkup customLocationButtons(String button) {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(true);
         List<KeyboardRow> keyboardRows = new ArrayList<>();
 
         KeyboardRow firstRow = new KeyboardRow();
@@ -237,15 +274,20 @@ public class BotFunctions {
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }
+
     public ReplyKeyboardMarkup skipAndCustomButtons(String button) {return keyboardMarkupBuilder(List.of(button, "Пропустить"));}
+
     public ReplyKeyboardMarkup cancelButton() {return keyboardMarkupBuilder(List.of("Отменить"));}
+
     public ReplyKeyboardMarkup removeAndCustomButtons(String button) {return keyboardMarkupBuilder(List.of(button, "Убрать"));}
+
     public ReplyKeyboardMarkup welcomeBackButton() {return keyboardMarkupBuilder(List.of("Включить анкету"));}
+
     public ReplyKeyboardMarkup showWhoLikedMeButtons() {return keyboardMarkupBuilder(List.of("Посмотреть", "В другой раз"));}
+
     public ReplyKeyboardMarkup faqButtons() {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(true);
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow firstRow = new KeyboardRow();
         firstRow.add("1");
@@ -256,10 +298,15 @@ public class BotFunctions {
         keyboardRows.add(secondRow);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;}
+
     public ReplyKeyboardMarkup faqResponseButtons() {return keyboardMarkupBuilder(List.of("Назад", "Вернуться в меню"));}
+
     public ReplyKeyboardMarkup restartButton() {return keyboardMarkupBuilder(List.of("/start"));}
+
     public ReplyKeyboardMarkup searchButtons() {return keyboardMarkupBuilder(List.of("❤", "\uD83D\uDC8C", "\uD83D\uDC4E", "\uD83D\uDCA4"));}
+
     public ReplyKeyboardMarkup reciprocityButtons() {return keyboardMarkupBuilder(List.of("❤", "\uD83D\uDC4E", "\uD83D\uDCA4"));}
+
     public InlineKeyboardMarkup complainButton (Long complaintUserId) {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
@@ -273,6 +320,7 @@ public class BotFunctions {
         markup.setKeyboard(keyboard);
         return markup;
     }
+
     public InlineKeyboardMarkup judgeButtons (Long userId) {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
@@ -289,41 +337,6 @@ public class BotFunctions {
 
         markup.setKeyboard(keyboard);
         return markup;
-    }
-
-
-    @SneakyThrows
-    public void sendDatingProfileAndJudgeButtons(Long userId, UserEntity userEntity) {
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-
-        Future<SendPhoto> sendPhotoFuture = executor.submit(() -> {
-            SendPhoto sendPhoto = new SendPhoto();
-//            sendPhoto.setPhoto(getInputFile(userEntity.getPhoto()));
-            sendPhoto.setChatId(userId);
-            return sendPhoto;
-        });
-
-        Future<String> parseHobbyFuture = executor.submit(() -> {
-            String hobby = userEntity.getHobby();
-            if (hobby != null) {
-                return parseHobby(hobby);
-            }
-            return "";
-        });
-
-        String aboutMe = userEntity.getAboutMe();
-        String userName = userEntity.getName();
-        String age = String.valueOf(userEntity.getAge());
-        String location = userEntity.getLocation();
-        String hobby = parseHobbyFuture.get();
-        String profileInfo = userName + ", " + age + ", " + location + hobby + (aboutMe == null ? "" : "\n" + aboutMe);
-
-        SendPhoto sendPhoto = sendPhotoFuture.get();
-        sendPhoto.setCaption(profileInfo);
-        sendPhoto.setReplyMarkup(judgeButtons(userEntity.getId()));
-
-        telegramBot.execute(sendPhoto);
-        executor.shutdown();
     }
 
     private ReplyKeyboardMarkup keyboardMarkupBuilder(List<String> buttonLabels) {
@@ -376,6 +389,31 @@ public class BotFunctions {
             return userName + ", " + age + ", " + location + hobby + (aboutMe == null ? "" : "\n" + aboutMe);
         });
 
+        profileInfoFuture.thenAccept(profileInfo -> loadUserAvatars(userId, userEntity, profileInfo, userAvatarsFuture)).join();
+    }
+
+    @SneakyThrows
+    public void sendDatingProfileWithoutDistance(Long userId, UserEntity userEntity) {
+
+        CompletableFuture<String> parseHobbyFuture = CompletableFuture.supplyAsync(() -> {
+            String hobby = userEntity.getHobby();
+            if (hobby != null) {
+                return parseHobby(hobby);
+            }
+            return "";
+        });
+
+        CompletableFuture<List<UserAvatar>> userAvatarsFuture = CompletableFuture.supplyAsync(userEntity::getUserAvatars);
+
+        CompletableFuture<String> profileInfoFuture = CompletableFuture.allOf(parseHobbyFuture)
+                .thenApplyAsync(ignored -> {
+                    String aboutMe = userEntity.getAboutMe();
+                    String userName = userEntity.getName();
+                    String age = String.valueOf(userEntity.getAge());
+                    String location = userEntity.getLocation();
+                    String hobby = parseHobbyFuture.join();
+                    return userName + ", " + age + ", " + location + hobby + (aboutMe == null ? "" : "\n" + aboutMe);
+                });
         profileInfoFuture.thenAccept(profileInfo -> loadUserAvatars(userId, userEntity, profileInfo, userAvatarsFuture)).join();
     }
 
@@ -458,7 +496,7 @@ public class BotFunctions {
 
     @SneakyThrows
     public ChatMember getChatMember (Long userId) {
-        return telegramBot.execute(new GetChatMember("@That_Girl_Oasis", userId));
+        return telegramBot.execute(new GetChatMember(telegramBot.getBotUsername(), userId));
     }
 
     private static String formatDistance(double distance) {
@@ -472,7 +510,6 @@ public class BotFunctions {
         }
     }
 
-
     private String parseHobby(String allHobby) {
         StringBuilder stringBuilder = new StringBuilder();
         String[] hobbyArray = allHobby.split(",");
@@ -485,5 +522,14 @@ public class BotFunctions {
             }
         }
         return stringBuilder.toString();
+    }
+
+    @SneakyThrows
+    public String getUsernameByUserId(Long userId) {
+        GetChatMember getChatMember = new GetChatMember();
+        getChatMember.setChatId(userId);
+        getChatMember.setUserId(userId);
+        ChatMember chatMember = telegramBot.execute(getChatMember);
+        return chatMember.getUser().getUserName();
     }
 }

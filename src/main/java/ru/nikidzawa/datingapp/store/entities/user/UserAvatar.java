@@ -7,6 +7,7 @@ import lombok.experimental.FieldDefaults;
 import java.io.Serializable;
 
 @Entity
+@Table(name = "user_avatar")
 @Getter
 @Setter
 @Builder

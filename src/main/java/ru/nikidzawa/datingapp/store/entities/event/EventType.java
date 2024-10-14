@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.util.List;
 
 @Entity
+@Table(name = "event_type")
 @Getter
 @Setter
 @Builder
@@ -23,6 +24,6 @@ public class EventType implements Serializable {
     String name;
 
     @JsonIgnore
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "eventType")
     List<EventEntity> eventEntities;
 }

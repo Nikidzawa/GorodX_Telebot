@@ -15,10 +15,9 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
             "WHERE u.isActive = true " +
             "AND u.isBanned = false " +
             "AND u.id != :userId " +
-            "AND u.id NOT IN :excludedUserIds " +
+            "AND SQRT(POWER(u.longitude - :givenLongitude, 2) + POWER(u.latitude - :givenLatitude, 2)) <= 0.045" +
             "ORDER BY SQRT(POWER(u.longitude - :givenLongitude, 2) + POWER(u.latitude - :givenLatitude, 2))")
     List<UserEntity> findAllOrderByDistance(@Param("userId") Long userId,
-                                            @Param("excludedUserIds") List<Long> excludedUserIds,
                                             @Param("givenLongitude") double givenLongitude,
                                             @Param("givenLatitude") double givenLatitude);
 

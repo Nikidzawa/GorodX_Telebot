@@ -1,15 +1,13 @@
 package ru.nikidzawa.datingapp.store.entities.event;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.io.Serializable;
 
 @Entity
+@Table(name = "event_token")
 @Getter
 @Setter
 @Builder

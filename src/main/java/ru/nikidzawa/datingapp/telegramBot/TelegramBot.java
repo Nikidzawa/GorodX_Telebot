@@ -8,31 +8,34 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
-import ru.nikidzawa.datingapp.api.internal.controllers.users.RolesController;
 import ru.nikidzawa.datingapp.store.entities.user.UserEntity;
+import ru.nikidzawa.datingapp.store.entities.user.helpers.UserEntityAndRegisterStatus;
 import ru.nikidzawa.datingapp.telegramBot.botFunctions.BotFunctions;
 import ru.nikidzawa.datingapp.telegramBot.cache.CacheService;
-import ru.nikidzawa.datingapp.telegramBot.helpers.Messages;
+import ru.nikidzawa.datingapp.telegramBot.messages.Messages;
 import ru.nikidzawa.datingapp.telegramBot.services.DataBaseService;
 import ru.nikidzawa.datingapp.telegramBot.stateMachines.callBacks.CallBacksStateMachine;
 import ru.nikidzawa.datingapp.telegramBot.stateMachines.commands.CommandStateMachine;
 import ru.nikidzawa.datingapp.telegramBot.stateMachines.mainStates.StateEnum;
 import ru.nikidzawa.datingapp.telegramBot.stateMachines.mainStates.StateMachine;
-import ru.nikidzawa.datingapp.telegramBot.stateMachines.roles.RoleStates;
 
-import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
 
-    @Override
-    public String getBotUsername() {return "@ThatGirl_Oasis_bot";}
+    @Autowired
+    BotData botData;
 
     @Override
-    public String getBotToken() {return "7008547107:AAF1XURy4dClvFnPOvS_daa3vsWryMBfscQ";}
+    public String getBotUsername() {
+        return botData.getLogin();
+    }
+
+    @Override
+    public String getBotToken() {
+        return botData.getToken();
+    }
 
     public BotFunctions botFunctions;
 
@@ -54,19 +57,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     CallBacksStateMachine callBacksStateMachine;
 
-    @Autowired
-    RoleStates roleStates;
-
-    @Autowired
-    RolesController rolesController;
-
-
-    private final HashSet<String> menuButtons;
-
-    public TelegramBot () {
-        menuButtons = new HashSet<>(List.of("1", "2", "3", "4"));
-    }
-
     @PostConstruct
     @SneakyThrows
     private void init () {
@@ -74,59 +64,88 @@ public class TelegramBot extends TelegramLongPollingBot {
         stateMachine.setBotFunctions(botFunctions);
         commandStateMachine.setBotFunctions(botFunctions);
         callBacksStateMachine.setBotFunctions(botFunctions);
-        rolesController.setBotFunctions(botFunctions);
     }
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasCallbackQuery()) {
+
+        // Обработчик, если событие - это сообщение
+        if (update.hasMessage()) {
+            Message message = update.getMessage();
+
+            // Получение данных о юзере
+            Long userId = update.getMessage().getFrom().getId();
+            UserEntityAndRegisterStatus registerStatus = checkRegister(dataBaseService.getUserById(userId));
+            UserEntity userEntity = registerStatus.getUserEntity();
+            boolean hasBeenRegistered = registerStatus.isHasBeenRegistered();
+
+            // Проверка на то, включена ли анкета
+            if (hasBeenRegistered && !userEntity.isActive()) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Мы ждали твоего возвращения, твоя анкета снова включена. Удачи в поисках ;)");
+                cacheService.evictAllUserCacheWithoutState(userId);
+                userEntity.setActive(true);
+                dataBaseService.saveUser(userEntity);
+                stateMachine.goToMenu(userId);
+                return;
+            }
+
+            // Если сообщение - это команда (начинается с "/"), то используется стейт машина по контролю за командами
+            if (message.hasText() && message.getText().startsWith("/")) {
+                commandStateMachine.handleInput(userId, message, userEntity, hasBeenRegistered);
+            }
+            // Если это не команда, значит происходит идентификация текущего состояния
+            else {
+                // Получаем состояние из кеша. Если его нет в кеше, значит произошла ошибка, статус ERROR
+                Cache.ValueWrapper optionalCurrentState = cacheService.getCurrentState(userId);
+                StateEnum currentState = optionalCurrentState == null ? StateEnum.ERROR : (StateEnum) optionalCurrentState.get();
+
+                // Запуск стейт машины: в зависимости от текущего состояния, бот выполняет соответствующие действия
+                stateMachine.handleInput(currentState, userId, userEntity, message, hasBeenRegistered);
+            }
+        }
+        // Обработчик, если событие - это каллбек
+        else if (update.hasCallbackQuery()) {
             Long userId = update.getCallbackQuery().getMessage().getChatId();
             Optional<UserEntity> optionalUser = dataBaseService.getUserById(userId);
             optionalUser.ifPresentOrElse(userEntity -> {
                 if (!userEntity.isBanned() && userEntity.isActive()) {
                     String[] response = update.getCallbackQuery().getData().split(",");
                     callBacksStateMachine.handleCallback(response[0], userId, Long.parseLong(response[1]));
-                } else {botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getROLE_EXCEPTION());}
+                } else {
+                    botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getROLE_EXCEPTION());
+                }
             }, () -> botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getNOT_REGISTER()));
-            return;
         }
-        Message message = update.getMessage();
-        Long userId = update.getMessage().getFrom().getId();
-        Optional<UserEntity> optionalUser = dataBaseService.getUserById(userId);
-        ChatMember chatMember = botFunctions.getChatMember(userId);
-        String role = chatMember.getStatus();
-        if (message.isUserMessage()) {
-             if (message.isCommand()) {
-                 commandStateMachine.handleInput(userId, message, role, optionalUser);
-            } else {
-                 userAndStateIdentification(userId, optionalUser, message);
+        // Обработчик событий, если пользователь заблокировал бота, или разблокировал его
+        else if (update.hasMyChatMember()) {
+            // Получение данных о юзере
+            Long userId = update.getMyChatMember().getFrom().getId();
+            UserEntityAndRegisterStatus registerStatus = checkRegister(dataBaseService.getUserById(userId));
+            UserEntity userEntity = registerStatus.getUserEntity();
+            boolean hasBeenRegistered = registerStatus.isHasBeenRegistered();
+
+            // Если пользователь заблокировал бота
+            if (update.getMyChatMember().getNewChatMember().getStatus().equals("kicked")) {
+                cacheService.evictAllUserCache(userId);
+                // Если пользователь зарегистрирован, то отключаем анкету
+                if (hasBeenRegistered) {
+                    userEntity.setActive(false);
+                    dataBaseService.saveUser(userEntity);
+                }
             }
         }
     }
 
-    private void userAndStateIdentification (Long userId, Optional<UserEntity> optionalUser, Message message) {
-        Cache.ValueWrapper optionalCurrentState = cacheService.getCurrentState(userId);
-        if (optionalCurrentState == null) {
-             optionalUser.ifPresentOrElse(user -> {
-                if (user.isActive()) {
-                    if (message.hasText() && menuButtons.contains(message.getText())) {
-                        if (user.getLikesGiven().isEmpty()) {
-                            stateMachine.handleInput(StateEnum.MENU, userId, user, message, true);
-                        } else {
-                            stateMachine.handleInput(StateEnum.SUPER_MENU, userId, user, message, true);
-                        }
-                    } else {
-                        botFunctions.sendMessageAndRemoveKeyboard(userId, messages.getWAIT_TIME_OUT_EXCEPTION());
-                        stateMachine.goToMenu(userId, user);
-                    }
-                } else {
-                    stateMachine.handleInput(StateEnum.WELCOME_BACK, userId, user, message, true);
-                }
-            }, () -> stateMachine.handleInput(StateEnum.START, userId, null, message, false));
-        } else {
-            StateEnum currentState = (StateEnum) optionalCurrentState.get();
-            optionalUser.ifPresentOrElse(user -> stateMachine.handleInput(currentState, userId, user, message, true),
-                    () -> stateMachine.handleInput(currentState, userId, null, message, false));
+    // Если пользователь есть в кеше или в базе и у него есть id, значит пользователь уже зарегистрирован
+    private UserEntityAndRegisterStatus checkRegister(Optional<UserEntity> optionalUser) {
+        UserEntity userEntity = null;
+        boolean hasBeenRegistered = false;
+
+        if (optionalUser.isPresent() && optionalUser.get().getId() != null) {
+            userEntity = optionalUser.get();
+            hasBeenRegistered = true;
         }
+
+        return new UserEntityAndRegisterStatus(userEntity, hasBeenRegistered);
     }
 }

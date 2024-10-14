@@ -1,13 +1,11 @@
 package ru.nikidzawa.datingapp.store.entities.error;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Entity
+@Table(name = "error")
 @Getter
 @Setter
 @Builder

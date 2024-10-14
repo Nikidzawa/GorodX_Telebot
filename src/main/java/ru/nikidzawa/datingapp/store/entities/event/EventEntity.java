@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Entity
+@Table(name = "event")
 @Getter
 @Setter
 @Builder
@@ -47,6 +48,7 @@ public class EventEntity implements Serializable {
     EventImage mainImage;
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "eventType_id", nullable = false)
     EventType eventType;
 
     @ManyToOne(fetch = FetchType.EAGER)

@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.util.List;
 
 @Entity
+@Table(name = "event_city")
 @Getter
 @Setter
 @Builder
