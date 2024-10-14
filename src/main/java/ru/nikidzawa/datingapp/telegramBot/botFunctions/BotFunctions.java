@@ -230,13 +230,28 @@ public class BotFunctions {
         return replyKeyboardMarkup;
     }
 
-    public ReplyKeyboardMarkup askBeforeOffButtons() {return keyboardMarkupBuilder(List.of("Выключить анкету", "Я передумала"));}
+    public ReplyKeyboardMarkup askBeforeOffButtons() {return keyboardMarkupBuilder(List.of("Выключить анкету", "Вернуться назад"));}
 
     public ReplyKeyboardMarkup editResultButtons() {return keyboardMarkupBuilder(List.of("Сохранить", "Отменить"));}
 
     public ReplyKeyboardMarkup customButton(String button) {return keyboardMarkupBuilder(List.of(button));}
 
     public ReplyKeyboardMarkup customButton(String button1, String button2) {return keyboardMarkupBuilder(List.of(button1, button2));}
+
+    public ReplyKeyboardMarkup customButton(String button1, String button2, String button3) {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        replyKeyboardMarkup.setResizeKeyboard(true);
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow firstRow = new KeyboardRow();
+        firstRow.add(button1);
+        firstRow.add(button2);
+        KeyboardRow secondRow = new KeyboardRow();
+        secondRow.add(button3);
+        keyboardRows.add(firstRow);
+        keyboardRows.add(secondRow);
+        replyKeyboardMarkup.setKeyboard(keyboardRows);
+        return replyKeyboardMarkup;
+    }
 
     public ReplyKeyboardMarkup locationButton() {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();

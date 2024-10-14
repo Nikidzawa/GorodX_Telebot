@@ -35,6 +35,10 @@ public class UserEntity implements Serializable {
     @Column(length = 1000)
     String aboutMe;
 
+    GenderEnum gender;
+
+    GenderSearchEnum genderSearch;
+
     double longitude;
 
     double latitude;

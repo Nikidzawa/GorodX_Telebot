@@ -120,7 +120,7 @@ public class CommandStateMachine {
             cacheService.evictAllUserCacheWithoutState(userId);
             if (hasBeenRegistered) {
                 if (userEntity.isActive()) {
-                    stateMachine.goToMenu(userId);
+                    stateMachine.goToMenu(userId, userEntity);
                 }
             } else {
                 stateMachine.handleInput(StateEnum.START, userId, null, message, false);
@@ -132,7 +132,7 @@ public class CommandStateMachine {
         @Override
         public void handleInput(long userId, Message message, UserEntity userEntity, boolean hasBeenRegistered) {
             cacheService.evictAllUserCacheWithoutState(userId);
-            stateMachine.goToMenu(userId);
+            stateMachine.goToMenu(userId, userEntity);
         }
     }
 
@@ -212,7 +212,7 @@ public class CommandStateMachine {
                 dataBaseService.deleteError(errorEntity);
             }, () -> {
                 botFunctions.sendMessageNotRemoveKeyboard(userId, "Больше жалоб не поступало");
-                stateMachine.goToMenu(userId);
+                stateMachine.goToMenu(userId, userEntity);
             });
         }
     }

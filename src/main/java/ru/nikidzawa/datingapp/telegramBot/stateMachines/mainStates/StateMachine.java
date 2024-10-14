@@ -11,10 +11,7 @@ import ru.nikidzawa.datingapp.store.entities.complaint.ComplaintEntity;
 import ru.nikidzawa.datingapp.store.entities.error.ErrorEntity;
 import ru.nikidzawa.datingapp.store.entities.like.LikeContentType;
 import ru.nikidzawa.datingapp.store.entities.like.LikeEntity;
-import ru.nikidzawa.datingapp.store.entities.user.RoleEnum;
-import ru.nikidzawa.datingapp.store.entities.user.UserAvatar;
-import ru.nikidzawa.datingapp.store.entities.user.UserDetailsEntity;
-import ru.nikidzawa.datingapp.store.entities.user.UserEntity;
+import ru.nikidzawa.datingapp.store.entities.user.*;
 import ru.nikidzawa.datingapp.store.repositories.LikeRepository;
 import ru.nikidzawa.datingapp.telegramBot.botFunctions.BotFunctions;
 import ru.nikidzawa.datingapp.telegramBot.cache.CacheService;
@@ -26,7 +23,6 @@ import ru.nikidzawa.datingapp.telegramBot.services.parsers.JsonParser;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
 @Component
 public class StateMachine {
@@ -76,6 +72,8 @@ public class StateMachine {
 
         textStates.put(StateEnum.ASK_NAME, new AskName());
         textStates.put(StateEnum.ASK_AGE, new AskAge());
+        textStates.put(StateEnum.ASK_GENDER, new AskGender());
+        textStates.put(StateEnum.ASK_GENDER_SEARCH, new AskGenderSearch());
         textStates.put(StateEnum.ASK_CITY, new AskCity());
         textStates.put(StateEnum.ASK_ABOUT_ME, new AskAboutMe());
         textStates.put(StateEnum.ASK_AVATAR, new FinishRegisterAddAvatar());
@@ -174,7 +172,7 @@ public class StateMachine {
         }
     }
 
-    public void goToMenu(Long userId) {
+    public void goToMenu(Long userId, UserEntity userEntity) {
         long likedMeCount = dataBaseService.getAllPeopleCountWhoLikeUserEntity(userId);
         if (likedMeCount == 0) {
             botFunctions.sendMessageAndKeyboard(userId, messages.getMENU(), botFunctions.menuButtons());
@@ -182,9 +180,9 @@ public class StateMachine {
         } else {
             String likeCountText;
             if (likedMeCount == 1) {
-                likeCountText = "1. Посмотреть, кому я понравилась\n";
+                likeCountText = "1. Посмотреть, кому понравилась моя анкета\n";
             } else {
-                likeCountText = "1. Твоя анкета понравилась " + likedMeCount + " девушкам, показать их?\n";
+                likeCountText = "1. Твоя анкета понравилась " + likedMeCount + userEntity.getGenderSearch().getPrefix() + ", показать их?\n";
             }
             botFunctions.sendMessageAndKeyboard(userId,
                     likeCountText +
@@ -214,7 +212,7 @@ public class StateMachine {
             }
         } else {
             botFunctions.sendMessageNotRemoveKeyboard(userId, "К сожалению, поблизости никого не нашли. Попробуйте изменить населённый пункт");
-            goToMenu(userId);
+            goToMenu(userId, userEntity);
         }
     }
 
@@ -226,7 +224,11 @@ public class StateMachine {
     private class Left implements State {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-            botFunctions.sendMessageAndKeyboard(userId, messages.getLEFT(), botFunctions.restartButton());
+            botFunctions.sendMessageAndKeyboard(
+                    userId,
+                    userEntity.getGender() == GenderEnum.MALE ? messages.getLEFT_MAN() : messages.getLEFT_WOMEN(),
+                    botFunctions.restartButton()
+            );
             dataBaseService.getUserById(userId).ifPresent(user -> {
                 user.setActive(false);
                 dataBaseService.saveUser(user);
@@ -309,7 +311,6 @@ public class StateMachine {
     private class AskAge implements State {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-            UserEntity user = cacheService.getCachedUser(userId);
             int age;
             try {
                 age = Integer.parseInt(message.getText());
@@ -321,8 +322,75 @@ public class StateMachine {
                 botFunctions.sendMessageAndRemoveKeyboard(userId, messages.getIS_NOT_A_NUMBER_EXCEPTION());
                 return;
             }
+            UserEntity user = cacheService.getCachedUser(userId);
             user.setAge(age);
             cacheService.putCachedUser(userId, user);
+
+            botFunctions.sendMessageAndKeyboard(userId, messages.getASK_GENDER(),
+                    botFunctions.customButton(
+                            GenderEnum.MALE.getSmileAndName(),
+                            GenderEnum.FEMALE.getSmileAndName()
+                    )
+            );
+
+            cacheService.setState(userId, StateEnum.ASK_GENDER);
+        }
+    }
+
+    private class AskGender implements State {
+
+        @Override
+        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
+            String userResponse = message.getText();
+            GenderEnum selectedGender = null;
+            if (userResponse.equals(GenderEnum.MALE.getSmileAndName())) {
+                selectedGender = GenderEnum.MALE;
+            } else if (userResponse.equals(GenderEnum.FEMALE.getSmileAndName())) {
+                selectedGender = GenderEnum.FEMALE;
+            } else {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getINVALID_VALUE());
+                return;
+            }
+
+            UserEntity user = cacheService.getCachedUser(userId);
+            user.setGender(selectedGender);
+
+            cacheService.putCachedUser(userId, user);
+
+            botFunctions.sendMessageAndKeyboard(userId, messages.getASK_GENDER_SEARCH(),
+                    botFunctions.customButton(
+                            GenderSearchEnum.MALE.getSmileAndName(),
+                            GenderSearchEnum.FEMALE.getSmileAndName(),
+                            GenderSearchEnum.NO_DIFFERENCE.getSmileAndName()
+                    )
+            );
+            cacheService.setState(userId, StateEnum.ASK_GENDER_SEARCH);
+        }
+    }
+
+    private class AskGenderSearch implements State {
+
+        @Override
+        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
+            String userResponse = message.getText();
+            GenderSearchEnum selectedGenderSearch = null;
+
+            if (userResponse.equals(GenderSearchEnum.MALE.getSmileAndName())) {
+                selectedGenderSearch = GenderSearchEnum.MALE;
+            } else if (userResponse.equals(GenderSearchEnum.FEMALE.getSmileAndName())) {
+                selectedGenderSearch = GenderSearchEnum.FEMALE;
+            } else if (userResponse.equals(GenderSearchEnum.NO_DIFFERENCE.getSmileAndName())) {
+                selectedGenderSearch = GenderSearchEnum.NO_DIFFERENCE;
+            } else {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getINVALID_VALUE());
+                return;
+            }
+
+            UserEntity user = cacheService.getCachedUser(userId);
+            user.setGenderSearch(selectedGenderSearch);
+
+            cacheService.putCachedUser(userId, user);
+
             if (hasBeenRegistered && userEntity.getAboutMe() != null) {
                 botFunctions.sendMessageAndKeyboard(userId, messages.getASK_ABOUT_ME(), botFunctions.skipAndCustomButtons(messages.getSKIP_EDIT()));
             } else {
@@ -530,7 +598,11 @@ public class StateMachine {
         private class OffProfile implements State {
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_BEFORE_OFF(), botFunctions.askBeforeOffButtons());
+                botFunctions.sendMessageAndKeyboard(
+                        userId,
+                        userEntity.getGender() == GenderEnum.MALE ? messages.getASK_BEFORE_OFF_MAN() : messages.getASK_BEFORE_OFF_WOMEN(),
+                        botFunctions.askBeforeOffButtons()
+                );
                 cacheService.setState(userId, StateEnum.ASK_BEFORE_OFF);
             }
         }
@@ -579,7 +651,10 @@ public class StateMachine {
         private class OffProfile implements State {
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getASK_BEFORE_OFF(), botFunctions.askBeforeOffButtons());
+                botFunctions.sendMessageAndKeyboard(
+                        userId,
+                        userEntity.getGender() == GenderEnum.MALE ? messages.getASK_BEFORE_OFF_MAN() : messages.getASK_BEFORE_OFF_WOMEN(),
+                        botFunctions.askBeforeOffButtons());
                 cacheService.setState(userId, StateEnum.ASK_BEFORE_OFF);
             }
         }
@@ -605,11 +680,11 @@ public class StateMachine {
                         if (ReceiverLikeEntity.isEmpty()) {
                             botFunctions.sendMessageAndKeyboard(likeReceiverId, "твоя анкета кому-то понравилась", botFunctions.showWhoLikedMeButtons());
                         } else {
-                            botFunctions.sendMessageAndKeyboard(likeReceiverId, "твоя анкета понравилась " + (ReceiverLikeEntity.size() + 1) + " людям", botFunctions.showWhoLikedMeButtons());
+                            botFunctions.sendMessageAndKeyboard(likeReceiverId, "твоя анкета понравилась " + (ReceiverLikeEntity.size() + 1) + likeReceiver.getGenderSearch().getPrefix(), botFunctions.showWhoLikedMeButtons());
                         }
                         cacheService.setState(likeReceiverId, StateEnum.SHOW_WHO_LIKED_ME);
                     } else if (optionalState.get() == StateEnum.FIND_PEOPLES) {
-                        botFunctions.sendMessageNotRemoveKeyboard(likeReceiverId, "Заканчивай с просмотром анкет, ты кому-то понравилась!");
+                        botFunctions.sendMessageNotRemoveKeyboard(likeReceiverId, "Заканчивай с просмотром анкет, твоя анкета кому-то понравилась!");
                     }
                     dataBaseService.saveLike(
                             LikeEntity.builder()
@@ -776,6 +851,7 @@ public class StateMachine {
             String messageText = message.getText();
             if (messageText.equals("Сохранить")) {
                 UserEntity cachedUser = cacheService.getCachedUser(userId);
+                cachedUser.setActive(true);
                 goToProfile(userId, cachedUser);
                 new Thread(() -> {
                     dataBaseService.saveAllUserAvatars(cachedUser.getUserAvatars());
@@ -789,7 +865,7 @@ public class StateMachine {
     }
 
     private void goToProfile(Long userId, UserEntity userEntity) {
-        botFunctions.sendMessageNotRemoveKeyboard(userId, "Так выглядит твоя анкета");
+        botFunctions.sendMessageNotRemoveKeyboard(userId, "Так выглядит твоя анкета \uD83E\uDD20");
         botFunctions.sendDatingProfile(userId, userEntity);
         botFunctions.sendMessageAndKeyboard(userId, messages.getMY_PROFILE(), botFunctions.myProfileButtons());
         cacheService.setState(userId, StateEnum.MY_PROFILE);
@@ -800,16 +876,14 @@ public class StateMachine {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
             Long userAssessmentId = cacheService.getUserAssessmentId(userId);
-            if (userAssessmentId == null) {
-                botFunctions.sendMessageNotRemoveKeyboard(userId, "Время ожидания оценки истекло");
-            } else {
-                botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
-                removeRecommendUser(userId, userAssessmentId);
-                new Thread(() -> {
-                    String fileId = botFunctions.loadPhoto(message.getPhoto());
-                    sendLike(userEntity, userAssessmentId, false, LikeContentType.PHOTO, fileId);
-                }).start();
-            }
+
+            botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
+            removeRecommendUser(userId, userAssessmentId);
+            new Thread(() -> {
+                String fileId = botFunctions.loadPhoto(message.getPhoto());
+                sendLike(userEntity, userAssessmentId, false, LikeContentType.PHOTO, fileId);
+            }).start();
+
             showNextUser(userId, userEntity);
         }
     }
@@ -818,16 +892,14 @@ public class StateMachine {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
             Long userAssessmentId = cacheService.getUserAssessmentId(userId);
-            if (userAssessmentId == null) {
-                botFunctions.sendMessageNotRemoveKeyboard(userId, "Время ожидания оценки истекло");
-            } else {
-                botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
-                removeRecommendUser(userId, userAssessmentId);
-                new Thread(() -> {
-                    String fileId = message.getVoice().getFileId();
-                    sendLike(userEntity, userAssessmentId, false, LikeContentType.VOICE, fileId);
-                }).start();
-            }
+
+            botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
+            removeRecommendUser(userId, userAssessmentId);
+            new Thread(() -> {
+                String fileId = message.getVoice().getFileId();
+                sendLike(userEntity, userAssessmentId, false, LikeContentType.VOICE, fileId);
+            }).start();
+
             showNextUser(userId, userEntity);
         }
     }
@@ -836,16 +908,14 @@ public class StateMachine {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
             Long userAssessmentId = cacheService.getUserAssessmentId(userId);
-            if (userAssessmentId == null) {
-                botFunctions.sendMessageNotRemoveKeyboard(userId, "Время ожидания оценки истекло");
-            } else {
-                botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
-                removeRecommendUser(userId, userAssessmentId);
-                new Thread(() -> {
-                    String fileId = message.getVideo().getFileId();
-                    sendLike(userEntity, userAssessmentId, false, LikeContentType.VIDEO, fileId);
-                }).start();
-            }
+
+            botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
+            removeRecommendUser(userId, userAssessmentId);
+            new Thread(() -> {
+                String fileId = message.getVideo().getFileId();
+                sendLike(userEntity, userAssessmentId, false, LikeContentType.VIDEO, fileId);
+            }).start();
+
             showNextUser(userId, userEntity);
         }
     }
@@ -876,44 +946,18 @@ public class StateMachine {
         }
     }
 
-    private class WelcomeBack implements State {
-        @Override
-        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-            botFunctions.sendMessageAndKeyboard(userId,
-                    "Привет, " + message.getFrom().getFirstName() + "\n" +
-                            "Я рада, что ты вернулась в наше сообщество! \uD83D\uDC96\n" +
-                            "\n" +
-                            "Давай включим тебе анкету?\n", botFunctions.welcomeBackButton());
-            cacheService.evictAllUserCache(userId);
-            cacheService.setState(userId, StateEnum.WELCOME_BACK_HANDLE);
-        }
-    }
-
-    private class WelcomeBackHandle implements State {
-        @Override
-        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-            if (message.getText().equals("Включить анкету")) {
-                goToMenu(userId);
-                userEntity.setActive(true);
-                dataBaseService.saveUser(userEntity);
-            }
-        }
-    }
-
     private class SendLikeAndMessageVideoNote implements State {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
             Long userAssessmentId = cacheService.getUserAssessmentId(userId);
-            if (userAssessmentId == null) {
-                botFunctions.sendMessageNotRemoveKeyboard(userId, "Время ожидания оценки истекло");
-            } else {
-                botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
-                removeRecommendUser(userId, userAssessmentId);
-                new Thread(() -> {
-                    String fileId = message.getVideoNote().getFileId();
-                    sendLike(userEntity, userAssessmentId, false, LikeContentType.VIDEO_NOTE, fileId);
-                }).start();
-            }
+
+            botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
+            removeRecommendUser(userId, userAssessmentId);
+            new Thread(() -> {
+                String fileId = message.getVideoNote().getFileId();
+                sendLike(userEntity, userAssessmentId, false, LikeContentType.VIDEO_NOTE, fileId);
+            }).start();
+
             showNextUser(userId, userEntity);
         }
     }
@@ -972,13 +1016,17 @@ public class StateMachine {
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
             String messageText = message.getText();
             if (messageText.equals("Выключить анкету")) {
-                botFunctions.sendMessageAndKeyboard(userId, messages.getLEFT(), botFunctions.restartButton());
+                botFunctions.sendMessageAndKeyboard(
+                        userId,
+                        userEntity.getGender() == GenderEnum.MALE ? messages.getLEFT_MAN() : messages.getLEFT_WOMEN(),
+                        botFunctions.restartButton()
+                );
                 userEntity.setActive(false);
                 dataBaseService.saveUser(userEntity);
                 cacheService.evictState(userId);
                 cacheService.evictCachedUser(userId);
-            } else if (messageText.equals("Я передумала")) {
-                goToMenu(userId);
+            } else if (messageText.equals("Вернуться назад")) {
+                goToMenu(userId, userEntity);
             }
         }
     }
@@ -1062,7 +1110,7 @@ public class StateMachine {
 
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-                goToMenu(userId);
+                goToMenu(userId, userEntity);
             }
         }
     }
@@ -1074,7 +1122,7 @@ public class StateMachine {
             if (messageText.equals("Посмотреть")) {
                 likeChecker(userId, userEntity);
             } else if (messageText.equals("В другой раз")) {
-                goToMenu(userId);
+                goToMenu(userId, userEntity);
             }
         }
     }
@@ -1085,14 +1133,9 @@ public class StateMachine {
             Long userAssessmentId = cacheService.getUserAssessmentId(userId);
             String messageText = message.getText();
             if (!messageText.equals("Отменить")) {
-                if (userAssessmentId == null) {
-                    botFunctions.sendMessageNotRemoveKeyboard(userId, "Время ожидания оценки истекло");
-                    goToMenu(userId);
-                } else {
-                    botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
-                    removeRecommendUser(userId, userAssessmentId);
-                    new Thread(() -> sendLike(userEntity, userAssessmentId, false, LikeContentType.TEXT, messageText)).start();
-                }
+                botFunctions.sendMessageAndKeyboard(userId, "Сообщение отправлено", botFunctions.searchButtons());
+                removeRecommendUser(userId, userAssessmentId);
+                new Thread(() -> sendLike(userEntity, userAssessmentId, false, LikeContentType.TEXT, messageText)).start();
             } else {
                 botFunctions.sendMessageAndKeyboard(userId, "Отмена отправки", botFunctions.searchButtons());
             }
@@ -1139,7 +1182,7 @@ public class StateMachine {
         private class GoToMenu implements State {
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-                goToMenu(userId);
+                goToMenu(userId, userEntity);
             }
         }
 
@@ -1160,7 +1203,7 @@ public class StateMachine {
                 startSearch(userId, userEntity);
             }
             else if (messageText.equals("Вернуться в меню")) {
-                goToMenu(userId);
+                goToMenu(userId, userEntity);
             }
         }
     }
@@ -1181,13 +1224,11 @@ public class StateMachine {
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
                 Long userAssessmentId = cacheService.getUserAssessmentId(userId);
-                if (userAssessmentId == null) {
-                    botFunctions.sendMessageNotRemoveKeyboard(userId, "Время ожидания оценки истекло");
-                } else {
-                    botFunctions.sendMessageNotRemoveKeyboard(userId, "Лайк отправлен, ждём ответа");
-                    removeRecommendUser(userId, userAssessmentId);
-                    new Thread(() -> sendLike(userEntity, userAssessmentId, false, null, null)).start();
-                }
+
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Лайк отправлен, ждём ответа");
+                removeRecommendUser(userId, userAssessmentId);
+                new Thread(() -> sendLike(userEntity, userAssessmentId, false, null, null)).start();
+
                 showNextUser(userId, userEntity);
             }
         }
@@ -1203,9 +1244,7 @@ public class StateMachine {
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
                 Long userAssessmentId = cacheService.getUserAssessmentId(userId);
-                if (userAssessmentId != null) {
-                    removeRecommendUser(userId, userAssessmentId);
-                }
+                removeRecommendUser(userId, userAssessmentId);
                 showNextUser(userId, userEntity);
             }
         }
@@ -1213,7 +1252,7 @@ public class StateMachine {
         private class GoToMenu implements State {
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-                goToMenu(userId);
+                goToMenu(userId, userEntity);
                 cacheService.evictUserAssessmentId(userId);
             }
         }
@@ -1232,7 +1271,7 @@ public class StateMachine {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
             botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getSUCCESS_SEND_ERROR());
-            goToMenu(userId);
+            goToMenu(userId, userEntity);
             new Thread(() -> {
                 ErrorEntity errorEntity = ErrorEntity.builder()
                         .errorSenderId(userId)
@@ -1251,7 +1290,7 @@ public class StateMachine {
                 botFunctions.sendMessageAndKeyboard(userId, messages.getFAQ(), botFunctions.faqButtons());
                 cacheService.setState(userId, StateEnum.FAQ);
             } else if (messageText.equals("Вернуться в меню")) {
-                goToMenu(userId);
+                goToMenu(userId, userEntity);
             }
         }
     }
@@ -1286,7 +1325,7 @@ public class StateMachine {
         private class GoToMenu implements State {
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-                goToMenu(userId);
+                goToMenu(userId, userEntity);
             }
         }
 
@@ -1314,7 +1353,7 @@ public class StateMachine {
                 dataBaseService.saveComplain(complainEntity);
                 botFunctions.sendMessageAndRemoveKeyboard(userId, messages.getSUCCESS_SEND_COMPLAINT());
             }
-            goToMenu(userId);
+            goToMenu(userId, userEntity);
             cacheService.evictComplaintUser(userId);
         }
     }
@@ -1349,7 +1388,7 @@ public class StateMachine {
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
             botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getERROR());
             cacheService.evictAllUserCache(userId);
-            goToMenu(userId);
+            goToMenu(userId, userEntity);
         }
     }
 }

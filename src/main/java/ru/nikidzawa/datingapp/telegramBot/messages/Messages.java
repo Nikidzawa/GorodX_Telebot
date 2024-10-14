@@ -13,6 +13,10 @@ public class Messages {
     String ASK_NAME;
     @Value("${ASK_AGE}")
     String ASK_AGE;
+    @Value("${ASK_GENDER}")
+    String ASK_GENDER;
+    @Value("${ASK_GENDER_SEARCH}")
+    String ASK_GENDER_SEARCH;
     @Value("${ASK_CITY}")
     String ASK_CITY;
     @Value("${ASK_ABOUT_ME}")
@@ -39,8 +43,6 @@ public class Messages {
     String STOP_ADD_AVATAR;
     @Value("${SKIP_ADD_AVATAR}")
     String SKIP_EDIT;
-    @Value("${ASK_BEFORE_OFF}")
-    String ASK_BEFORE_OFF;
 
     //MENU
     @Value("${MENU}")
@@ -49,10 +51,19 @@ public class Messages {
     String MY_PROFILE;
 
     //LEFT GROUP OR DISABLE PROFILE
-    @Value("${LEFT}")
-    String LEFT;
+    @Value("${LEFT_MAN}")
+    String LEFT_MAN;
+    @Value("${LEFT_WOMEN}")
+    String LEFT_WOMEN;
+
+    @Value("${ASK_BEFORE_OFF_MAN}")
+    String ASK_BEFORE_OFF_MAN;
+    @Value("${ASK_BEFORE_OFF_WOMEN}")
+    String ASK_BEFORE_OFF_WOMEN;
 
     //EXCEPTIONS
+    @Value("${INVALID_VALUE}")
+    String INVALID_VALUE;
     @Value("${INVALID_FORMAT_EXCEPTION}")
     String INVALID_FORMAT_EXCEPTION;
     @Value("${IS_NOT_A_NUMBER_EXCEPTION}")
@@ -61,16 +72,12 @@ public class Messages {
     String AGE_LIMIT_SYMBOLS_EXCEPTIONS;
     @Value("${NAME_LIMIT_SYMBOLS_EXCEPTIONS}")
     String NAME_LIMIT_SYMBOLS_EXCEPTIONS;
-    @Value("${HOBBY_LIMIT_SYMBOLS_EXCEPTIONS}")
-    String HOBBY_LIMIT_SYMBOLS_EXCEPTIONS;
     @Value("${ABOUT_ME_LIMIT_SYMBOLS_EXCEPTIONS}")
     String ABOUT_ME_LIMIT_SYMBOLS_EXCEPTIONS;
     @Value("${CITY_LIMIT_SYMBOLS_EXCEPTIONS}")
     String CITY_LIMIT_SYMBOLS_EXCEPTIONS;
     @Value("${NOT_REGISTER}")
     String NOT_REGISTER;
-    @Value("${WAIT_TIME_OUT_EXCEPTION}")
-    String WAIT_TIME_OUT_EXCEPTION;
     @Value("${ROLE_EXCEPTION}")
     String ROLE_EXCEPTION;
     @Value("${NOT_ENOUGH}")

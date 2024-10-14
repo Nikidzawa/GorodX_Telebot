@@ -7,6 +7,8 @@ public enum StateEnum {
     START_HANDLE,
     ASK_NAME,
     ASK_AGE,
+    ASK_GENDER,
+    ASK_GENDER_SEARCH,
     ASK_CITY,
     ASK_ABOUT_ME,
     ASK_AVATAR,

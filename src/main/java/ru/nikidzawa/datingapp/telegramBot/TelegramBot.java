@@ -85,7 +85,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 cacheService.evictAllUserCacheWithoutState(userId);
                 userEntity.setActive(true);
                 dataBaseService.saveUser(userEntity);
-                stateMachine.goToMenu(userId);
+                stateMachine.goToMenu(userId, userEntity);
                 return;
             }
 
