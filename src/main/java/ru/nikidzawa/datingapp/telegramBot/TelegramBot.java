@@ -81,7 +81,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             // Проверка на то, включена ли анкета
             if (hasBeenRegistered && !userEntity.isActive()) {
-                botFunctions.sendMessageNotRemoveKeyboard(userId, "Мы ждали твоего возвращения. Твоя анкета снова включена, удачи в поисках \uD83D\uDE09");
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Мы ждали твоего возвращения! Твоя анкета снова включена, удачи в поисках \uD83D\uDE09");
                 cacheService.evictAllUserCacheWithoutState(userId);
                 userEntity.setActive(true);
                 dataBaseService.saveUser(userEntity);
@@ -95,9 +95,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             // Если это не команда, значит происходит идентификация текущего состояния
             else {
-                // Получаем состояние из кеша. Если его нет в кеше, значит произошла ошибка, статус ERROR
+                // Получаем состояние из кеша. Если его нет в кеше, значит произошла ошибка, статус ERROR или START
                 Cache.ValueWrapper optionalCurrentState = cacheService.getCurrentState(userId);
-                StateEnum currentState = optionalCurrentState == null ? StateEnum.ERROR : (StateEnum) optionalCurrentState.get();
+                StateEnum currentState = optionalCurrentState == null ?
+                        (hasBeenRegistered ? StateEnum.ERROR : StateEnum.START) : (StateEnum) optionalCurrentState.get();
 
                 // Запуск стейт машины: в зависимости от текущего состояния, бот выполняет соответствующие действия
                 stateMachine.handleInput(currentState, userId, userEntity, message, hasBeenRegistered);

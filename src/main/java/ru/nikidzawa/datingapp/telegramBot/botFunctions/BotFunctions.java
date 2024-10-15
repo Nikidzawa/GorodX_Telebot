@@ -159,9 +159,9 @@ public class BotFunctions {
                 .build();
     }
 
-    public ReplyKeyboardMarkup menuButtons() {return keyboardMarkupBuilder(List.of("1 \uD83D\uDE80", "2 \uD83E\uDDD1\u200D\uD83E\uDDB1", "3 \uD83D\uDCA4"));}
+    public ReplyKeyboardMarkup menuButtons(String smile) {return keyboardMarkupBuilder(List.of("1 \uD83D\uDE80", "2 " + smile, "3 \uD83D\uDCA4"));}
 
-    public ReplyKeyboardMarkup superMenuButtons() {return keyboardMarkupBuilder(List.of("1 ❤", "2 \uD83D\uDE80", "3 \uD83E\uDDD1\u200D\uD83E\uDDB1", "4 \uD83D\uDCA4"));}
+    public ReplyKeyboardMarkup superMenuButtons(String smile) {return keyboardMarkupBuilder(List.of("1 ❤", "2 \uD83D\uDE80", "3 " + smile, "4 \uD83D\uDCA4"));}
 
     public ReplyKeyboardMarkup resultButtons() {return keyboardMarkupBuilder(List.of("Заполнить анкету заново", "Продолжить"));}
 

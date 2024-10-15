@@ -3,6 +3,7 @@ package ru.nikidzawa.datingapp.store.entities.user;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.Type;
 
 import java.io.Serializable;
 import java.util.List;
@@ -35,8 +36,12 @@ public class UserEntity implements Serializable {
     @Column(length = 1000)
     String aboutMe;
 
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "VARCHAR(32)")
     GenderEnum gender;
 
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "VARCHAR(32)")
     GenderSearchEnum genderSearch;
 
     double longitude;

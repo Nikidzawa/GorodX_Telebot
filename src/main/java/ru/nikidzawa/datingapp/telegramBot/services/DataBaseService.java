@@ -116,7 +116,13 @@ public class DataBaseService {
     }
 
     public List<UserEntity> getRecommendation(UserEntity myProfile) {
-        return userRepository.findAllOrderByDistance(myProfile.getId(), myProfile.getLongitude(), myProfile.getLatitude());
+        return userRepository.findAllOrderByDistance(
+                myProfile.getId(),
+                myProfile.getLongitude(),
+                myProfile.getLatitude(),
+                myProfile.getGender().name(),
+                myProfile.getGenderSearch().name()
+        );
     }
 
     public Long getAllPeopleCountWhoLikeUserEntity(Long userEntityId) {

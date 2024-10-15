@@ -201,4 +201,9 @@ public class CacheService {
         evictComplaintUser(userId);
         evictUserAssessmentId(userId);
     }
+
+    public void evictAllUserCacheWithoutStateAndAssessment(Long userId) {
+        evictCachedUser(userId);
+        evictComplaintUser(userId);
+    }
 }

@@ -88,7 +88,6 @@ public class CommandStateMachine {
             commandState = userCommands.get(messageText) == null ? adminCommands.get(messageText) : userCommands.get(messageText);
 
             if (commandState != null) {
-                cacheService.evictAllUserCacheWithoutState(userId);
                 commandState.handleInput(userId, message, userEntity, hasBeenRegistered);
             } else {
                 botFunctions.sendMessageNotRemoveKeyboard(userId, "Команда не найдена. Если вы не хотели указывать команду, то не начинайте сообщение со знака /");
@@ -157,6 +156,7 @@ public class CommandStateMachine {
     private class SendComplaint implements CommandState {
         @Override
         public void handleInput(long userId, Message message, UserEntity userEntity, boolean hasBeenRegistered) {
+            cacheService.evictAllUserCacheWithoutStateAndAssessment(userId);
             Long complaintReceiverId = cacheService.getUserAssessmentId(userId);
             if (complaintReceiverId != null) {
                 cacheService.putComplaintUser(userId, complaintReceiverId);
@@ -170,6 +170,7 @@ public class CommandStateMachine {
     private class Analysis implements CommandState {
         @Override
         public void handleInput(long userId, Message message, UserEntity userEntity, boolean hasBeenRegistered) {
+            cacheService.evictAllUserCacheWithoutState(userId);
             botFunctions.sendMessageAndRemoveKeyboard(userId, "Идёт анализ, пожалуйста, подождите...");
             String[] results = dataBaseService.findTop10CitiesByUserCount();
             Long size = dataBaseService.getCountActiveAndNotBannedUsers();
@@ -202,6 +203,7 @@ public class CommandStateMachine {
     private class ShowErrors implements CommandState {
         @Override
         public void handleInput(long userId, Message message, UserEntity userEntity, boolean hasBeenRegistered) {
+            cacheService.evictAllUserCacheWithoutState(userId);
             List<ErrorEntity> errorEntities = dataBaseService.findAllErrors();
             Optional<ErrorEntity> optionalError = errorEntities.stream().findAny();
             optionalError.ifPresentOrElse(errorEntity -> {
@@ -220,6 +222,7 @@ public class CommandStateMachine {
     private class Complaints implements CommandState {
         @Override
         public void handleInput(long userId, Message message, UserEntity userEntity, boolean hasBeenRegistered) {
+            cacheService.evictAllUserCacheWithoutState(userId);
             getComplaint(userId);
         }
     }
@@ -228,6 +231,7 @@ public class CommandStateMachine {
 
         @Override
         public void handleInput(long userId, Message message, UserEntity userEntity, boolean hasBeenRegistered) {
+            cacheService.evictAllUserCacheWithoutState(userId);
             botFunctions.sendMessageNotRemoveKeyboard(userId, "Вы переходите в систему контроля ролей...");
 
             List<UserDetailsEntity> superAdmins = dataBaseService.getAllUserDetailsByRole(RoleEnum.SUPER_ADMIN);

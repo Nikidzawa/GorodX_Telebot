@@ -175,21 +175,29 @@ public class StateMachine {
     public void goToMenu(Long userId, UserEntity userEntity) {
         long likedMeCount = dataBaseService.getAllPeopleCountWhoLikeUserEntity(userId);
         if (likedMeCount == 0) {
-            botFunctions.sendMessageAndKeyboard(userId, messages.getMENU(), botFunctions.menuButtons());
+            botFunctions.sendMessageAndKeyboard(userId,
+                    """
+                            1. Начать поиск новых знакомств ✨
+                            2. Моя анкета
+                            3. Выключить анкету
+                            """
+                    , botFunctions.menuButtons(userEntity.getGender().getSmile()));
             cacheService.setState(userId, StateEnum.MENU);
         } else {
             String likeCountText;
             if (likedMeCount == 1) {
-                likeCountText = "1. Посмотреть, кому понравилась моя анкета\n";
+                likeCountText = "1. Твоя анкета понравилась 1 " + userEntity.getGenderSearch().getSinglePrefix() + ", показать " + (userEntity.getGenderSearch() == GenderSearchEnum.FEMALE ? "её" : "его") + "?\n";
             } else {
-                likeCountText = "1. Твоя анкета понравилась " + likedMeCount + userEntity.getGenderSearch().getPrefix() + ", показать их?\n";
+                likeCountText = "1. Твоя анкета понравилась " + likedMeCount + userEntity.getGenderSearch().getMultiPrefix() + ", показать их?\n";
             }
             botFunctions.sendMessageAndKeyboard(userId,
                     likeCountText +
-                            "2. Начать поиск ✨\n" +
-                            "3. Моя анкета\n" +
-                            "4. Выключить анкету",
-                    botFunctions.superMenuButtons());
+                            """
+                            2. Начать поиск новых знакомств ✨
+                            3. Моя анкета
+                            4. Выключить анкету
+                            """,
+                    botFunctions.superMenuButtons(userEntity.getGender().getSmile()));
             cacheService.setState(userId, StateEnum.SUPER_MENU);
         }
     }
@@ -577,7 +585,8 @@ public class StateMachine {
         public Menu() {
             responses = new HashMap<>();
             responses.put("1 \uD83D\uDE80", new FindPeoples());
-            responses.put("2 \uD83E\uDDD1\u200D\uD83E\uDDB1", new MyProfile());
+            responses.put("2 \uD83D\uDC68", new MyProfile());
+            responses.put("2 \uD83D\uDC69", new MyProfile());
             responses.put("3 \uD83D\uDCA4", new OffProfile());
         }
 
@@ -622,8 +631,9 @@ public class StateMachine {
         public SuperMenu () {
             superMenuStates = new HashMap<>();
             superMenuStates.put("1 ❤", new ShowWhoLikedMe());
-            superMenuStates.put("2 \uD83D\uDE80", new FindPeople());
-            superMenuStates.put("3 \uD83E\uDDD1\u200D\uD83E\uDDB1", new MyProfile());
+            superMenuStates.put("2 \uD83D\uDE80", new FindPeoples());
+            superMenuStates.put("3 \uD83D\uDC68", new MyProfile());
+            superMenuStates.put("3 \uD83D\uDC69", new MyProfile());
             superMenuStates.put("4 \uD83D\uDCA4", new OffProfile());
         }
 
@@ -634,7 +644,7 @@ public class StateMachine {
             }
         }
 
-        private class FindPeople implements State {
+        private class FindPeoples implements State {
             @Override
             public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
                 startSearch(userId, userEntity);
@@ -680,7 +690,7 @@ public class StateMachine {
                         if (ReceiverLikeEntity.isEmpty()) {
                             botFunctions.sendMessageAndKeyboard(likeReceiverId, "твоя анкета кому-то понравилась", botFunctions.showWhoLikedMeButtons());
                         } else {
-                            botFunctions.sendMessageAndKeyboard(likeReceiverId, "твоя анкета понравилась " + (ReceiverLikeEntity.size() + 1) + likeReceiver.getGenderSearch().getPrefix(), botFunctions.showWhoLikedMeButtons());
+                            botFunctions.sendMessageAndKeyboard(likeReceiverId, "твоя анкета понравилась " + (ReceiverLikeEntity.size() + 1) + likeReceiver.getGenderSearch().getMultiPrefix(), botFunctions.showWhoLikedMeButtons());
                         }
                         cacheService.setState(likeReceiverId, StateEnum.SHOW_WHO_LIKED_ME);
                     } else if (optionalState.get() == StateEnum.FIND_PEOPLES) {
