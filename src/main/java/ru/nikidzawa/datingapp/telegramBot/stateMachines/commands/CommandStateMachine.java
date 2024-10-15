@@ -19,6 +19,8 @@ import ru.nikidzawa.datingapp.telegramBot.stateMachines.mainStates.StateMachine;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Component
 public class CommandStateMachine {
@@ -45,6 +47,7 @@ public class CommandStateMachine {
     public CommandStateMachine() {
         userCommands = new HashMap<>();
         userCommands.put("/start", new Start());
+        userCommands.put("/myId", new MyId());
         userCommands.put("/menu", new Menu());
         userCommands.put("/faq", new FAQ());
         userCommands.put("/error", new Error());
@@ -124,6 +127,13 @@ public class CommandStateMachine {
             } else {
                 stateMachine.handleInput(StateEnum.START, userId, null, message, false);
             }
+        }
+    }
+
+    private class MyId implements CommandState {
+        @Override
+        public void handleInput(long userId, Message message, UserEntity userEntity, boolean hasBeenRegistered) {
+            botFunctions.sendMessageNotRemoveKeyboard(userId, String.valueOf(userId));
         }
     }
 
@@ -234,37 +244,9 @@ public class CommandStateMachine {
             cacheService.evictAllUserCacheWithoutState(userId);
             botFunctions.sendMessageNotRemoveKeyboard(userId, "Вы переходите в систему контроля ролей...");
 
-            List<UserDetailsEntity> superAdmins = dataBaseService.getAllUserDetailsByRole(RoleEnum.SUPER_ADMIN);
-            List<String> superAdminsLinks = superAdmins.stream().map(superAdmin -> "https://t.me/" + botFunctions.getUsernameByUserId(superAdmin.getId())).toList();
-
-            List<UserDetailsEntity> admins = dataBaseService.getAllUserDetailsByRole(RoleEnum.ADMIN);
-            List<String> adminLinks = admins.stream().map(admin -> "https://t.me/" + botFunctions.getUsernameByUserId(admin.getId())).toList();
-
-            RoleEnum roleEnum = dataBaseService.getUserDetails(userId).getRole();
-
-            botFunctions.sendMessageAndKeyboard(userId,
-                    "Ваша роль: " + roleEnum.getSmile() + " " + roleEnum.getName()
-                            + "\n\n"
-                            + RoleEnum.SUPER_ADMIN.getSmile() + " Список создателей:" + parseLinks(superAdminsLinks)
-                            + "\n\n"
-                            + RoleEnum.ADMIN.getSmile() + " Список администраторов:" + parseLinks(adminLinks),
-                    roleEnum == RoleEnum.SUPER_ADMIN ? botFunctions.superAdminButtons() : botFunctions.adminButtons()
-            );
+            stateMachine.goToRoleController(dataBaseService.getUserDetails(userId).getRole(), userId);
         }
 
-        private String parseLinks (List<String> links) {
-            StringBuilder parsedLinks = new StringBuilder();
-            if (!links.isEmpty()) {
-                parsedLinks.append("\n");
-                for (int i = 0; i < links.size(); i++) {
-                    parsedLinks.append(i + 1).append(". ").append(links.get(i));
 
-                    if (i < links.size() - 1) {
-                        parsedLinks.append("\n");
-                    }
-                }
-            } else parsedLinks.append("\nНе назначены");
-            return parsedLinks.toString();
-        }
     }
 }

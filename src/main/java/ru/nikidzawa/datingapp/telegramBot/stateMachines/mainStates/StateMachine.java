@@ -19,10 +19,13 @@ import ru.nikidzawa.datingapp.telegramBot.messages.Messages;
 import ru.nikidzawa.datingapp.telegramBot.services.DataBaseService;
 import ru.nikidzawa.datingapp.telegramBot.services.parsers.Geocode;
 import ru.nikidzawa.datingapp.telegramBot.services.parsers.JsonParser;
+import ru.nikidzawa.datingapp.telegramBot.stateMachines.commands.RoleState;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Component
 public class StateMachine {
@@ -78,6 +81,8 @@ public class StateMachine {
         textStates.put(StateEnum.ASK_ABOUT_ME, new AskAboutMe());
         textStates.put(StateEnum.ASK_AVATAR, new FinishRegisterAddAvatar());
         textStates.put(StateEnum.RESULT, new Result());
+        textStates.put(StateEnum.ADD_ADMINISTRATOR_ROLE, new AddAdministratorRole());
+        textStates.put(StateEnum.REMOVE_ROLE, new RemoveRole());
 
         textStates.put(StateEnum.MENU, new Menu());
         textStates.put(StateEnum.SUPER_MENU, new SuperMenu());
@@ -101,6 +106,8 @@ public class StateMachine {
         textStates.put(StateEnum.SEND_ERROR, new SendError());
         textStates.put(StateEnum.FIND_PEOPLES_COMPLAIN, new FindPeopleComplain());
         textStates.put(StateEnum.ERROR, new Error());
+        textStates.put(StateEnum.ROLES_CONTROLLER, new RolesController());
+        textStates.put(StateEnum.ADD_SUPER_ADMINISTRATOR_ROLE, new AddSuperAdministratorRole());
 
         photoStates.put(StateEnum.ASK_AVATAR, new AddAvatarPhoto());
         photoStates.put(StateEnum.EDIT_AVATAR, new AddAvatarPhoto());
@@ -875,7 +882,7 @@ public class StateMachine {
     }
 
     private void goToProfile(Long userId, UserEntity userEntity) {
-        botFunctions.sendMessageNotRemoveKeyboard(userId, "Так выглядит твоя анкета \uD83E\uDD20");
+        botFunctions.sendMessageNotRemoveKeyboard(userId, "⭐ Так выглядит твоя анкета");
         botFunctions.sendDatingProfile(userId, userEntity);
         botFunctions.sendMessageAndKeyboard(userId, messages.getMY_PROFILE(), botFunctions.myProfileButtons());
         cacheService.setState(userId, StateEnum.MY_PROFILE);
@@ -1400,5 +1407,234 @@ public class StateMachine {
             cacheService.evictAllUserCache(userId);
             goToMenu(userId, userEntity);
         }
+    }
+
+    private class RolesController implements State {
+
+        HashMap<String, RoleState> commands;
+
+        public RolesController() {
+            commands = new HashMap<>();
+            commands.put("\uD83D\uDC51 Назначить создателя", new CreateSupeAdmin());
+            commands.put("\uD83D\uDC6E Назначить администратора", new CreateAdmin());
+            commands.put("⛔ Разжаловать", new RemoveRole());
+        }
+
+        private class CreateSupeAdmin implements RoleState {
+
+            @Override
+            public void handleInput(Long userId, UserDetailsEntity userDetailsEntity) {
+                if (userDetailsEntity.getRole() != RoleEnum.SUPER_ADMIN) {
+                    botFunctions.sendMessageNotRemoveKeyboard(userId, "Недостаточно прав");
+                    return;
+                }
+                cacheService.setState(userId, StateEnum.ADD_SUPER_ADMINISTRATOR_ROLE);
+                botFunctions.sendMessageAndRemoveKeyboard(userId, "Хорошо, теперь пришли id пользователя." +
+                        "\nЧтобы его узнать, попроси пользователя ввести команду /myId, или самостоятельно найди человека в базе данных"
+                );
+            }
+        }
+
+        private class CreateAdmin implements RoleState {
+
+            @Override
+            public void handleInput(Long userId, UserDetailsEntity userDetailsEntity) {
+                if (userDetailsEntity.getRole() != RoleEnum.SUPER_ADMIN) {
+                    botFunctions.sendMessageNotRemoveKeyboard(userId, "Недостаточно прав");
+                    return;
+                }
+                cacheService.setState(userId, StateEnum.ADD_ADMINISTRATOR_ROLE);
+                botFunctions.sendMessageAndRemoveKeyboard(userId, "Хорошо, теперь пришли id пользователя." +
+                        "\nЧтобы его узнать, попроси пользователя ввести команду /myId, или самостоятельно найди человека в базе данных"
+                );
+            }
+        }
+
+        private class RemoveRole implements RoleState {
+
+            @Override
+            public void handleInput(Long userId, UserDetailsEntity userDetailsEntity) {
+                if (userDetailsEntity.getRole() != RoleEnum.ADMIN && userDetailsEntity.getRole() != RoleEnum.SUPER_ADMIN) {
+                    botFunctions.sendMessageNotRemoveKeyboard(userId, "Недостаточно прав");
+                    return;
+                }
+                cacheService.setState(userId, StateEnum.REMOVE_ROLE);
+                botFunctions.sendMessageAndRemoveKeyboard(userId, "Хорошо, теперь пришли id пользователя." +
+                        "\nЧтобы его узнать, попроси пользователя ввести команду /myId, или самостоятельно найди человека в базе данных"
+                );
+            }
+        }
+
+        @Override
+        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
+            String messageText = message.getText();
+            RoleState state = commands.get(messageText);
+            if (state != null) {
+                UserDetailsEntity userDetails = dataBaseService.getUserDetails(userId);
+                state.handleInput(userId, userDetails);
+            }
+        }
+    }
+
+    private class AddSuperAdministratorRole implements State {
+
+        @Override
+        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
+            String messageText = message.getText();
+            UserDetailsEntity userDetails;
+
+            try {
+                Long.valueOf(messageText);
+                userDetails = dataBaseService.getUserDetails(Long.valueOf(messageText));
+            } catch (Exception ex) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Пользователя с таким id не существует");
+                return;
+            }
+
+            UserDetailsEntity creator = dataBaseService.getUserDetails(userId);
+            if (creator.getRole() != RoleEnum.SUPER_ADMIN) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Недостаточно прав");
+            } else if (userDetails.getRole() == RoleEnum.SUPER_ADMIN) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Пользователь уже имеет эту роль");
+            } else {
+                userDetails.setRole(RoleEnum.SUPER_ADMIN);
+                dataBaseService.saveUserDetails(userDetails);
+                botFunctions.sendMessageNotRemoveKeyboard(userDetails.getId(),
+                        "Вы теперь " + RoleEnum.SUPER_ADMIN.getName() + " " + RoleEnum.SUPER_ADMIN.getSmile() +
+                                "\nПодробнее /roleController" +
+                                "\nНа эту должность вы были назначены пользователем - https://t.me/" + botFunctions.getUsernameByUserId(userId));
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Роль назначена ✅");
+                goToRoleController(creator.getRole(), userId);
+            }
+        }
+    }
+
+    private class AddAdministratorRole implements State {
+
+        @Override
+        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
+            String messageText = message.getText();
+            UserDetailsEntity userDetails;
+
+            try {
+                Long.valueOf(messageText);
+                userDetails = dataBaseService.getUserDetails(Long.valueOf(messageText));
+            } catch (Exception ex) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Пользователя с таким id не существует");
+                return;
+            }
+
+            UserDetailsEntity creator = dataBaseService.getUserDetails(userId);
+            if (creator.getRole() != RoleEnum.SUPER_ADMIN) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Недостаточно прав");
+            } else if (userDetails.getRole() == RoleEnum.ADMIN) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Пользователь уже имеет эту роль");
+            } else {
+                userDetails.setRole(RoleEnum.ADMIN);
+                dataBaseService.saveUserDetails(userDetails);
+                botFunctions.sendMessageNotRemoveKeyboard(userDetails.getId(),
+                        "Вы теперь " + RoleEnum.ADMIN.getName() + " " + RoleEnum.ADMIN.getSmile() +
+                                "\nПодробнее /roleController" +
+                                "\nНа эту должность вы были назначены пользователем - https://t.me/" + botFunctions.getUsernameByUserId(userId));
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Роль назначена ✅");
+                goToRoleController(creator.getRole(), userId);
+            }
+        }
+    }
+
+    private class RemoveRole implements State {
+
+        @Override
+        public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
+            String messageText = message.getText();
+            UserDetailsEntity userDetails;
+
+            try {
+                Long.valueOf(messageText);
+                userDetails = dataBaseService.getUserDetails(Long.valueOf(messageText));
+            } catch (Exception ex) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Пользователя с таким id не существует");
+                return;
+            }
+
+            UserDetailsEntity creator = dataBaseService.getUserDetails(userId);
+            if (creator.getRole() != RoleEnum.SUPER_ADMIN) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Недостаточно прав");
+            } else if (userDetails.getRole() == RoleEnum.USER) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Пользователь не имеет роли");
+            } else {
+                userDetails.setRole(RoleEnum.USER);
+                dataBaseService.saveUserDetails(userDetails);
+                botFunctions.sendMessageNotRemoveKeyboard(userDetails.getId(), "Вы были разжалованы в должности пользователем https://t.me/" + botFunctions.getUsernameByUserId(userId));
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Пользователь разжалован ✅");
+                goToRoleController(creator.getRole(), userId);
+            }
+        }
+    }
+
+    public void goToRoleController(RoleEnum roleEnum, Long userId) {
+        if (roleEnum == RoleEnum.SUPER_ADMIN) {
+            botFunctions.sendMessageAndKeyboard(userId,
+                    "Ваша роль: " + roleEnum.getSmile() + " " + roleEnum.getName()
+                            + "\n\n"
+                            + RoleEnum.SUPER_ADMIN.getSmile() + " Список создателей:" + parseLinks(dataBaseService.getAllUserDetailsByRole(RoleEnum.SUPER_ADMIN))
+                            + "\n\n"
+                            + RoleEnum.ADMIN.getSmile() + " Список администраторов:" + parseLinks(dataBaseService.getAllUserDetailsByRole(RoleEnum.ADMIN)),
+                    botFunctions.superAdminButtons());
+            botFunctions.sendMessageNotRemoveKeyboard(userId,
+                    """
+                            ⭐ Ваши привилегии:
+                            1. /show_errors - Показать ошибки отправленные пользователями
+                            
+                            2. /analysis - Анализ по анкетам
+                            
+                            3. /complaints - Жалобы на других пользователей, возможность бана
+                            
+                            4. /roleController - система контроля ролей (C возможностью добавлять и убирать роли)
+                            """
+            );
+            cacheService.setState(userId, StateEnum.ROLES_CONTROLLER);
+        } else {
+            botFunctions.sendMessageAndRemoveKeyboard(userId,
+                    "Ваша роль: " + roleEnum.getSmile() + " " + roleEnum.getName()
+                            + "\n\n"
+                            + RoleEnum.SUPER_ADMIN.getSmile() + " Список создателей:" + parseLinks(dataBaseService.getAllUserDetailsByRole(RoleEnum.SUPER_ADMIN))
+                            + "\n\n"
+                            + RoleEnum.ADMIN.getSmile() + " Список администраторов:" + parseLinks(dataBaseService.getAllUserDetailsByRole(RoleEnum.ADMIN))
+                    );
+            botFunctions.sendMessageNotRemoveKeyboard(userId,
+                    """
+                            ⭐ Ваши привилегии:
+                            1. /show_errors - Показать ошибки отправленные пользователями
+                            
+                            2. /analysis - Анализ по анкетам
+                            
+                            3. /complaints - Жалобы на других пользователей, возможность бана
+                            
+                            4. /roleController - система контроля ролей (Без возможности добавлять и убирать роли)
+                            """
+            );
+        }
+    }
+
+    private String parseLinks(List<UserDetailsEntity> admins) {
+        if (admins.isEmpty()) {
+            return "\nНе назначены";
+        }
+
+        AtomicInteger i = new AtomicInteger(0);
+        return admins.stream()
+                .map(admin -> {
+                    StringBuilder parsedLink = new StringBuilder();
+                    String link = "https://t.me/" + botFunctions.getUsernameByUserId(admin.getId());
+                    parsedLink.append("\n")
+                            .append(i.incrementAndGet())
+                            .append(". ")
+                            .append(link)
+                            .append("\nid: ")
+                            .append(admin.getId());
+                    return parsedLink.toString();
+                })
+                .collect(Collectors.joining("\n"));
     }
 }

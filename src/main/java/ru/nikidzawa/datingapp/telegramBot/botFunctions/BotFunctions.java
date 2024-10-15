@@ -17,6 +17,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButtonRequestUser;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import ru.nikidzawa.datingapp.store.entities.like.LikeContentType;
 import ru.nikidzawa.datingapp.store.entities.like.LikeEntity;
@@ -200,18 +201,6 @@ public class BotFunctions {
         secondRow.add("⛔ Разжаловать");
         keyboardRows.add(firstRow);
         keyboardRows.add(secondRow);
-        replyKeyboardMarkup.setKeyboard(keyboardRows);
-        return replyKeyboardMarkup;
-    }
-
-    public ReplyKeyboardMarkup adminButtons() {
-        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-        replyKeyboardMarkup.setResizeKeyboard(true);
-        List<KeyboardRow> keyboardRows = new ArrayList<>();
-        KeyboardRow firstRow = new KeyboardRow();
-        firstRow.add(RoleEnum.ADMIN.getSmile() + " Назначить администратора");
-        firstRow.add("⛔ Разжаловать");
-        keyboardRows.add(firstRow);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }
