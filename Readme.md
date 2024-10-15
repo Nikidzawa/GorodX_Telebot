@@ -18,16 +18,18 @@
 * Голосовое сообщение
 * Кружок (особый формат коротких видео в Telegram)
 
-![recommendation.png](src/main/resources/readmeImages/recommendation.png)
+<img src="src/main/resources/readmeImages/recommendation.jpg" width="15%" height="15%" alt="Рекомендации">
 
 ## Профиль
 
 Пользователь получает доступ к удобному и понятному интерфейсу
 
-![profile.png](src/main/resources/readmeImages/profile.png)
+<img src="src/main/resources/readmeImages/profile.jpg" width="15%" height="15%" alt="Профиль">
+
 
 ## Админ панель
 В боте реализована админ панель с четким разделением полномочий, 
 в которых разберётся даже человек далёкий от программирования
 
-![adminPanel.png](src/main/resources/readmeImages/adminPanel.png)
+
+<img src="src/main/resources/readmeImages/adminPanel.jpg" width="15%" height="15%" alt="Админ панель">
