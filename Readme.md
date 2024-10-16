@@ -2,7 +2,7 @@
 
 Телеграм бот для знакомств, аналог Tinder
 
-## Умная система рекомендаций
+## ⭐ Умная система рекомендаций
 
 Система рекомендаций буквально создана специально для того, чтобы найти тебе максимально подходящего человека. Она строится на:
 * Физической близости (благодаря геокодированию, точность поиска может иметь погрешность меньше метра)
@@ -18,16 +18,16 @@
 * Голосовое сообщение
 * Кружок (особый формат коротких видео в Telegram)
 
-![recommendation.png](src/main/resources/readmeImages/recommendation.png)
+<img src="src/main/resources/readmeImages/recommendation.jpg" width="35%" height="35%">
 
-## Профиль
+## ⭐ Профиль
 
 Пользователь получает доступ к удобному и понятному интерфейсу
 
-![profile.png](src/main/resources/readmeImages/profile.png)
+<img src="src/main/resources/readmeImages/profile.jpg" width="35%" height="35%">
 
-## Админ панель
+## ⭐ Админ панель
 В боте реализована админ панель с четким разделением полномочий, 
 в которых разберётся даже человек далёкий от программирования
 
-![adminPanel.png](src/main/resources/readmeImages/adminPanel.png)
+<img src="src/main/resources/readmeImages/adminPanel.jpg" width="35%" height="35%">
