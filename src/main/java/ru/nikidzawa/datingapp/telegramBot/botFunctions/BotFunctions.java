@@ -19,6 +19,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButtonRequestUser;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import org.telegram.telegrambots.meta.api.objects.webapp.WebAppInfo;
 import ru.nikidzawa.datingapp.store.entities.like.LikeContentType;
 import ru.nikidzawa.datingapp.store.entities.like.LikeEntity;
 import ru.nikidzawa.datingapp.store.entities.user.RoleEnum;
@@ -168,7 +169,7 @@ public class BotFunctions {
 
     public ReplyKeyboardMarkup skipButton() {return keyboardMarkupBuilder(List.of("Пропустить"));}
 
-    public ReplyKeyboardMarkup startButton() {return keyboardMarkupBuilder(List.of("Начнём!"));}
+    public ReplyKeyboardMarkup startButton() {return keyboardMarkupBuilder(List.of("Создать анкету"));}
 
     public ReplyKeyboardMarkup myProfileButtons() {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
@@ -272,6 +273,24 @@ public class BotFunctions {
         locationButton.setText("\uD83D\uDCCDОтправить мою геолокацию");
         secondRow.add(locationButton);
         keyboardRows.add(secondRow);
+
+        replyKeyboardMarkup.setKeyboard(keyboardRows);
+        return replyKeyboardMarkup;
+    }
+
+    public ReplyKeyboardMarkup webAppButton() {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        replyKeyboardMarkup.setResizeKeyboard(true);
+
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow row = new KeyboardRow();
+        KeyboardButton webAppButton = new KeyboardButton();
+        WebAppInfo webAppInfo = new WebAppInfo();
+        webAppInfo.setUrl("https://gorodX.ru");
+        webAppButton.setText("Перейти");
+        webAppButton.setWebApp(webAppInfo);
+        row.add(webAppButton);
+        keyboardRows.add(row);
 
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;

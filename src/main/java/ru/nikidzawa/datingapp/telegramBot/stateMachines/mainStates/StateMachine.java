@@ -1,5 +1,6 @@
 package ru.nikidzawa.datingapp.telegramBot.stateMachines.mainStates;
 
+import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
@@ -46,6 +47,7 @@ public class StateMachine {
     private ExternalApi externalApi;
 
     @Setter
+    @Getter
     private BotFunctions botFunctions;
 
     private final HashMap<StateEnum, State> textStates;
@@ -171,7 +173,7 @@ public class StateMachine {
     private class StartHandle implements State {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-            if (message.getText().equals("Начнём!")) {
+            if (message.getText().equals("Создать анкету")) {
                 cacheService.setState(userId, StateEnum.ASK_NAME);
                 cacheService.putCachedUser(userId, new UserEntity(userId));
                 botFunctions.sendMessageAndKeyboard(userId, messages.getASK_NAME(), botFunctions.customButton(message.getFrom().getFirstName()));
@@ -847,7 +849,10 @@ public class StateMachine {
                 UserEntity cachedUser = cacheService.getCachedUser(userId);
                 List<UserAvatar> userAvatars = cachedUser.getUserAvatars();
                 if (!userAvatars.isEmpty()) {
-                    goToEditResult(userId, cachedUser);
+                    userEntity.setUserAvatars(userAvatars);
+                    dataBaseService.saveUser(userEntity);
+                    goToProfile(userId, userEntity);
+                    cacheService.evictCachedUser(userId);
                 } else {
                     botFunctions.sendMessageNotRemoveKeyboard(userId, "Необходимо добавить хотя бы одну фотографию");
                 }
@@ -951,13 +956,10 @@ public class StateMachine {
     private class Start implements State {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
-            botFunctions.sendMessageAndRemoveKeyboard(userId,
-                    "Привет, " + message.getFrom().getFirstName() + "\n" +
-                            "Я рада, что ты присоединилась к нашему сообществу \uD83D\uDC96\n" +
-                            "\n" +
-                            "Здесь ты найдешь не только подруг, но и множество возможностей для личного роста и творческого самовыражения на наших мероприятиях.\n" +
-                            "Давай вместе создадим яркие и запоминающиеся моменты!");
-            botFunctions.sendMessageAndKeyboard(userId, "Давай заполним тебе анкету?", botFunctions.startButton());
+            botFunctions.sendMessageAndKeyboard(userId,
+                    "Привет " + message.getFrom().getFirstName() + ", добро пожаловать в наше сообщество!" +
+                            "\nGorodX - это №1 бот для поиска знакомств в ХМАО ЮГРЕ." +
+                            "\nДавай создадим тебе анкету и найдём новые знакомства!", botFunctions.startButton());
             cacheService.evictAllUserCache(userId);
             cacheService.setState(userId, StateEnum.START_HANDLE);
         }
@@ -1015,15 +1017,8 @@ public class StateMachine {
                 userEntity.setActive(true);
                 userEntity = dataBaseService.saveUser(userEntity);
 
-                dataBaseService.saveUserDetails(
-                        UserDetailsEntity.builder()
-                                .id(userEntity.getId())
-                                .role(RoleEnum.USER)
-                                .build()
-                );
-                cacheService.evictCachedUser(userId);
-
                 startSearch(userId, userEntity);
+                cacheService.evictCachedUser(userId);
             }
         }
     }

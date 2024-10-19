@@ -64,8 +64,11 @@ public class DataBaseService {
         Optional<UserDetailsEntity> optionalUserDetails = cacheService.getUserDetailsFromCache(userId);
         if (optionalUserDetails.isEmpty()) {
             Optional<UserDetailsEntity> userDetailsEntity = userDetailsRepository.findById(userId);
-            cacheService.putUserDetailsInCache(userId, userDetailsEntity.get());
-            return userDetailsEntity.get();
+            if (userDetailsEntity.isPresent()) {
+                UserDetailsEntity userDetails = userDetailsEntity.get();
+                cacheService.putUserDetailsInCache(userId, userDetails);
+                return userDetails;
+            } else return null;
         } else {
             return optionalUserDetails.get();
         }

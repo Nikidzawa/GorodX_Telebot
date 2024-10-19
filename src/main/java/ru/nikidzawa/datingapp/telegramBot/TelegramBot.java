@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import ru.nikidzawa.datingapp.store.entities.user.UserDetailsEntity;
 import ru.nikidzawa.datingapp.store.entities.user.UserEntity;
 import ru.nikidzawa.datingapp.store.entities.user.helpers.UserEntityAndRegisterStatus;
 import ru.nikidzawa.datingapp.telegramBot.botFunctions.BotFunctions;
@@ -79,6 +80,11 @@ public class TelegramBot extends TelegramLongPollingBot {
             UserEntity userEntity = registerStatus.getUserEntity();
             boolean hasBeenRegistered = registerStatus.isHasBeenRegistered();
 
+            UserDetailsEntity userDetails = dataBaseService.getUserDetails(userId);
+            if (userDetails == null) {
+                botFunctions.sendMessageAndKeyboard(userId, "Чтобы создать анкету, сначала необходимо приобрести доступ", botFunctions.webAppButton());
+            }
+
             // Проверка на то, включена ли анкета
             if (hasBeenRegistered && !userEntity.isActive()) {
                 botFunctions.sendMessageNotRemoveKeyboard(userId, "Мы ждали твоего возвращения! Твоя анкета снова включена, удачи в поисках \uD83D\uDE09");
@@ -101,7 +107,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                         (hasBeenRegistered ? StateEnum.ERROR : StateEnum.START) : (StateEnum) optionalCurrentState.get();
 
                 // Запуск стейт машины: в зависимости от текущего состояния, бот выполняет соответствующие действия
-                stateMachine.handleInput(currentState, userId, userEntity, message, hasBeenRegistered);
+                try {
+                    stateMachine.handleInput(currentState, userId, userEntity, message, hasBeenRegistered);
+                } catch (Exception ex) {
+                    stateMachine.handleInput(StateEnum.ERROR, userId, userEntity, message, hasBeenRegistered);
+                }
             }
         }
         // Обработчик, если событие - это каллбек
@@ -117,7 +127,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
             }, () -> botFunctions.sendMessageNotRemoveKeyboard(userId, messages.getNOT_REGISTER()));
         }
-        // Обработчик событий, если пользователь заблокировал бота, или разблокировал его
+        // Обработчик событий, если пользователь заблокировал или разблокировал бота
         else if (update.hasMyChatMember()) {
             // Получение данных о юзере
             Long userId = update.getMyChatMember().getFrom().getId();

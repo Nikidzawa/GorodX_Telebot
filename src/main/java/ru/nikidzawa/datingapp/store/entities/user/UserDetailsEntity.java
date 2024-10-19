@@ -23,5 +23,5 @@ public class UserDetailsEntity {
 
     RoleEnum role = RoleEnum.USER;
 
-    String token;
+    boolean isVerify;
 }
