@@ -11,9 +11,8 @@ import ru.nikidzawa.datingapp.api.internal.exceptions.NotFoundException;
 import ru.nikidzawa.datingapp.store.entities.user.RoleEnum;
 import ru.nikidzawa.datingapp.store.entities.user.UserDetailsEntity;
 import ru.nikidzawa.datingapp.store.entities.user.UserEntity;
-import ru.nikidzawa.datingapp.store.repositories.UserDetailsRepository;
 import ru.nikidzawa.datingapp.store.repositories.UserRepository;
-import ru.nikidzawa.datingapp.telegramBot.messages.Messages;
+import ru.nikidzawa.datingapp.telegramBot.services.DataBaseService;
 import ru.nikidzawa.datingapp.telegramBot.stateMachines.mainStates.StateEnum;
 import ru.nikidzawa.datingapp.telegramBot.stateMachines.mainStates.StateMachine;
 
@@ -26,7 +25,7 @@ public class UserController {
 
     UserRepository userRepository;
 
-    UserDetailsRepository userDetailsRepository;
+    DataBaseService dataBaseService;
 
     StateMachine stateMachine;
 
@@ -38,9 +37,7 @@ public class UserController {
 
     @PostMapping("verifyAccount/{userId}/{nickname}")
     public void verifyAccount (@PathVariable Long userId, @PathVariable String nickname) {
-        System.out.println("Никнейм " + nickname);
-
-        userDetailsRepository.saveAndFlush(
+        dataBaseService.saveUserDetails(
                 UserDetailsEntity.builder()
                         .id(userId)
                         .role(RoleEnum.USER)
@@ -55,5 +52,15 @@ public class UserController {
         message.setFrom(user);
 
         stateMachine.handleInput(StateEnum.START, userId, null, message, false);
+    }
+
+    @GetMapping("status/{userId}")
+    public UserDetailsEntity getStatue(@PathVariable Long userId) {
+        UserDetailsEntity userDetails = dataBaseService.getUserDetails(userId);
+        if (userDetails == null) {
+            throw new NotFoundException("Не найдено");
+        } else {
+            return userDetails;
+        }
     }
 }
