@@ -49,6 +49,7 @@ public class UserController {
         );
 
         Message message = new Message();
+        message.setText("text");
         User user = new User();
         user.setFirstName(nickname);
         message.setFrom(user);

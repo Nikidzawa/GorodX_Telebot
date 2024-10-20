@@ -60,7 +60,7 @@ public class CommandStateMachine {
         adminCommands.put("/roleController", new RoleController());
     }
 
-    public void handleInput(long userId, Message message, UserEntity userEntity, boolean hasBeenRegistered) {
+    public void handleInput(long userId, Message message, UserEntity userEntity, UserDetailsEntity userDetails, boolean hasBeenRegistered) {
         String messageText = message.getText();
         CommandState commandState = null;
 
@@ -75,7 +75,7 @@ public class CommandStateMachine {
             return;
         }
 
-        RoleEnum currentUserRole = dataBaseService.getUserDetails(userId).getRole();
+        RoleEnum currentUserRole = userDetails.getRole();
 
         // Команды для пользователей
         if (currentUserRole == RoleEnum.USER) {

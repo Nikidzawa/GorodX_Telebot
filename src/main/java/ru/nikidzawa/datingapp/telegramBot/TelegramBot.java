@@ -98,7 +98,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             // Если сообщение - это команда (начинается с "/"), то используется стейт машина по контролю за командами
             if (message.hasText() && message.getText().startsWith("/")) {
-                commandStateMachine.handleInput(userId, message, userEntity, hasBeenRegistered);
+                commandStateMachine.handleInput(userId, message, userEntity, userDetails, hasBeenRegistered);
             }
             // Если это не команда, значит происходит идентификация текущего состояния
             else {
