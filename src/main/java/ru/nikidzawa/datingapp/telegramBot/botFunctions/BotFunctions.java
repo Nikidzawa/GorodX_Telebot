@@ -286,7 +286,7 @@ public class BotFunctions {
         KeyboardRow row = new KeyboardRow();
         KeyboardButton webAppButton = new KeyboardButton();
         WebAppInfo webAppInfo = new WebAppInfo();
-        webAppInfo.setUrl("https://gorodX.ru");
+        webAppInfo.setUrl("https://gorodx-hmao.ru");
         webAppButton.setText("Перейти");
         webAppButton.setWebApp(webAppInfo);
         row.add(webAppButton);
