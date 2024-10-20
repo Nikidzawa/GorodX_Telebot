@@ -83,6 +83,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             UserDetailsEntity userDetails = dataBaseService.getUserDetails(userId);
             if (userDetails == null) {
                 botFunctions.sendMessageAndKeyboard(userId, "Чтобы создать анкету, сначала необходимо приобрести доступ", botFunctions.webAppButton());
+                return;
             }
 
             // Проверка на то, включена ли анкета
