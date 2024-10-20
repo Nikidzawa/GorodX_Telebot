@@ -38,6 +38,8 @@ public class UserController {
 
     @PostMapping("verifyAccount/{userId}/{nickname}")
     public void verifyAccount (@PathVariable Long userId, @PathVariable String nickname) {
+        System.out.println("Никнейм " + nickname);
+
         userDetailsRepository.saveAndFlush(
                 UserDetailsEntity.builder()
                         .id(userId)
