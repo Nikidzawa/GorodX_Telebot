@@ -22,7 +22,7 @@
 
 <img src="src/main/resources/readmeImages/recommendation.jpg" width="65%" height="65%">
 
-## Профиль
+## Интуитивно понятный интерфейс
 
 Пользователь получает доступ к удобному и понятному интерфейсу
 
