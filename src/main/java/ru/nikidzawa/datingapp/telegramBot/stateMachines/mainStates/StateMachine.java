@@ -195,7 +195,7 @@ public class StateMachine {
             if (likedMeCount == 1) {
                 likeCountText = "1. Твоя анкета понравилась 1 " + userEntity.getGenderSearch().getSinglePrefix() + ", показать " + (userEntity.getGenderSearch() == GenderSearchEnum.FEMALE ? "её" : "его") + "?\n";
             } else {
-                likeCountText = "1. Твоя анкета понравилась " + likedMeCount + userEntity.getGenderSearch().getMultiPrefix() + ", показать их?\n";
+                likeCountText = "1. Твоя анкета понравилась " + likedMeCount + " " + userEntity.getGenderSearch().getMultiPrefix() + ", показать их?\n";
             }
             botFunctions.sendMessageAndKeyboard(userId,
                     likeCountText +
