@@ -18,9 +18,9 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
             "WHERE u.is_active = true " +
             "AND u.is_banned = false " +
             "AND u.id != :userId " +
-            "AND SQRT(POWER(u.longitude - :givenLongitude, 2) + POWER(u.latitude - :givenLatitude, 2)) <= 0.090 " +
             "AND ((:myGenderSearch = 'NO_DIFFERENCE' AND u.gender IN ('MALE', 'FEMALE')) OR u.gender = :myGenderSearch) " +
-            "AND ((u.gender_search = 'NO_DIFFERENCE' AND :myGender IN ('MALE', 'FEMALE')) OR u.gender_search = :myGender) ",
+            "AND ((u.gender_search = 'NO_DIFFERENCE' AND :myGender IN ('MALE', 'FEMALE')) OR u.gender_search = :myGender) " +
+            "ORDER BY SQRT(POWER(u.longitude - :givenLongitude, 2) + POWER(u.latitude - :givenLatitude, 2))",
             nativeQuery = true)
     List<UserEntity> findAllOrderByDistance(@Param("userId") Long userId,
                                             @Param("givenLongitude") double givenLongitude,
