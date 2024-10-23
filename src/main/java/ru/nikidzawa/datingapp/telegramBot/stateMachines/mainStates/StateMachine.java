@@ -69,8 +69,6 @@ public class StateMachine {
 
         textStates.put(StateEnum.START, new Start());
         textStates.put(StateEnum.START_HANDLE, new StartHandle());
-//        textStates.put(StateEnum.WELCOME_BACK, new WelcomeBack());
-//        textStates.put(StateEnum.WELCOME_BACK_HANDLE, new WelcomeBackHandle());
 
         textStates.put(StateEnum.ASK_BEFORE_OFF, new AskBeforeOff());
         textStates.put(StateEnum.LEFT, new Left());
@@ -287,10 +285,18 @@ public class StateMachine {
             }
 
             UserEntity user = cacheService.getCachedUser(userId);
-            user.setLocation(messageText);
-            Geocode coordinates = jsonParser.parseGeocode(externalApi.getCoordinates(messageText));
-            user.setLongitude(coordinates.getLon());
-            user.setLatitude(coordinates.getLat());
+            if (hasBeenRegistered && messageText.equals(userEntity.getLocation())) {
+                user.setLocation(userEntity.getLocation());
+                user.setLongitude(userEntity.getLongitude());
+                user.setLatitude(userEntity.getLatitude());
+                user.setShowGeo(user.isShowGeo());
+            } else {
+                user.setLocation(messageText);
+                Geocode coordinates = jsonParser.parseGeocode(externalApi.getCoordinates(messageText));
+                user.setLongitude(coordinates.getLon());
+                user.setLatitude(coordinates.getLat());
+                user.setShowGeo(false);
+            }
             cacheService.putCachedUser(userId, user);
 
             if (hasBeenRegistered) {
@@ -301,6 +307,7 @@ public class StateMachine {
             cacheService.setState(userId, StateEnum.ASK_AGE);
         }
     }
+
     private class AskCityGeo implements State {
         @Override
         public void handleInput(Long userId, UserEntity userEntity, Message message, boolean hasBeenRegistered) {
@@ -309,11 +316,17 @@ public class StateMachine {
             double longitude = location.getLongitude();
             double latitude = location.getLatitude();
 
-            cachedUser.setLongitude(longitude);
-            cachedUser.setLatitude(latitude);
-            String city = jsonParser.getName(externalApi.getCityName(latitude, longitude));
-            cachedUser.setLocation(city);
-            cachedUser.setShowGeo(true);
+            try {
+                String city = jsonParser.getName(externalApi.getCityName(latitude, longitude));
+                cachedUser.setLocation(city);
+                cachedUser.setShowGeo(true);
+
+                cachedUser.setLongitude(longitude);
+                cachedUser.setLatitude(latitude);
+            } catch (Exception exception) {
+                botFunctions.sendMessageNotRemoveKeyboard(userId, "Сервисы геокодирования пока не доступны. Пожалуйста, повторите попытку позже");
+                return;
+            }
 
             cacheService.putCachedUser(userId, cachedUser);
             if (hasBeenRegistered) {
@@ -427,7 +440,7 @@ public class StateMachine {
             }
             if (!messageText.equals("Пропустить")) {
                 UserEntity user = cacheService.getCachedUser(userId);
-                if (messageText.equals("Оставить текущую информацию") && hasBeenRegistered) {
+                if (messageText.equals("Не изменять") && hasBeenRegistered) {
                     user.setAboutMe(userEntity.getAboutMe());
                 } else {
                     user.setAboutMe(message.getText());
@@ -699,7 +712,7 @@ public class StateMachine {
                         if (ReceiverLikeEntity.isEmpty()) {
                             botFunctions.sendMessageAndKeyboard(likeReceiverId, "твоя анкета кому-то понравилась", botFunctions.showWhoLikedMeButtons());
                         } else {
-                            botFunctions.sendMessageAndKeyboard(likeReceiverId, "твоя анкета понравилась " + (ReceiverLikeEntity.size() + 1) + likeReceiver.getGenderSearch().getMultiPrefix(), botFunctions.showWhoLikedMeButtons());
+                            botFunctions.sendMessageAndKeyboard(likeReceiverId, "твоя анкета понравилась " + (ReceiverLikeEntity.size() + 1) + " " + likeReceiver.getGenderSearch().getMultiPrefix(), botFunctions.showWhoLikedMeButtons());
                         }
                         cacheService.setState(likeReceiverId, StateEnum.SHOW_WHO_LIKED_ME);
                     } else if (optionalState.get() == StateEnum.FIND_PEOPLES) {
@@ -1449,7 +1462,7 @@ public class StateMachine {
 
             @Override
             public void handleInput(Long userId, UserDetailsEntity userDetailsEntity) {
-                if (userDetailsEntity.getRole() != RoleEnum.ADMIN && userDetailsEntity.getRole() != RoleEnum.SUPER_ADMIN) {
+                if (userDetailsEntity.getRole() != RoleEnum.SUPER_ADMIN) {
                     botFunctions.sendMessageNotRemoveKeyboard(userId, "Недостаточно прав");
                     return;
                 }
@@ -1589,7 +1602,7 @@ public class StateMachine {
                             """
             );
             cacheService.setState(userId, StateEnum.ROLES_CONTROLLER);
-        } else {
+        } else if (roleEnum == RoleEnum.ADMIN) {
             botFunctions.sendMessageAndRemoveKeyboard(userId,
                     "Ваша роль: " + roleEnum.getSmile() + " " + roleEnum.getName()
                             + "\n\n"
