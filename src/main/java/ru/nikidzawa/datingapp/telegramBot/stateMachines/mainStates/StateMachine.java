@@ -289,13 +289,18 @@ public class StateMachine {
                 user.setLocation(userEntity.getLocation());
                 user.setLongitude(userEntity.getLongitude());
                 user.setLatitude(userEntity.getLatitude());
-                user.setShowGeo(user.isShowGeo());
+                user.setShowGeo(userEntity.isShowGeo());
             } else {
-                user.setLocation(messageText);
-                Geocode coordinates = jsonParser.parseGeocode(externalApi.getCoordinates(messageText));
-                user.setLongitude(coordinates.getLon());
-                user.setLatitude(coordinates.getLat());
-                user.setShowGeo(false);
+                try {
+                    user.setLocation(messageText);
+                    Geocode coordinates = jsonParser.parseGeocode(externalApi.getCoordinates(messageText));
+                    user.setLongitude(coordinates.getLon());
+                    user.setLatitude(coordinates.getLat());
+                    user.setShowGeo(false);
+                } catch (Exception ex) {
+                    botFunctions.sendMessageNotRemoveKeyboard(userId, "Сервисы геокодирования пока не доступны. Пожалуйста, повторите попытку позже");
+                    return;
+                }
             }
             cacheService.putCachedUser(userId, user);
 
