@@ -9,7 +9,7 @@ import org.springframework.web.client.RestTemplate;
 @Component
 @CrossOrigin
 public class ExternalApi {
-    String[] apiKeysPull = {"a9e37ef6-bfed-43a3-81eb-1f8cbd52bbc1", "6fcdd42f-151b-4068-b587-ffaec9a48512", "69b2e791-2b45-4268-841f-2a98c25e62cc"};
+    String[] apiKeysPull = {"69b2e791-2b45-4268-841f-2a98c25e62cc", "52428ff2-d5cc-4934-a80a-d5938758d1c2"};
     int currentKey = 0;
 
     public String getCoordinates(String geoObject) {

@@ -1035,6 +1035,14 @@ public class StateMachine {
                 userEntity.setActive(true);
                 userEntity = dataBaseService.saveUser(userEntity);
 
+                dataBaseService.saveUserDetails(
+                        UserDetailsEntity.builder()
+                                .id(userEntity.getId())
+                                .role(RoleEnum.USER)
+                                .isVerify(true)
+                                .build()
+                );
+
                 startSearch(userId, userEntity);
                 cacheService.evictCachedUser(userId);
             }

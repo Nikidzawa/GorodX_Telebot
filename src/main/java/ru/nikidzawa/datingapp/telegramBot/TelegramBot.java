@@ -81,10 +81,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             boolean hasBeenRegistered = registerStatus.isHasBeenRegistered();
 
             UserDetailsEntity userDetails = dataBaseService.getUserDetails(userId);
-            if (userDetails == null) {
-                botFunctions.sendMessageAndRemoveKeyboard(userId, "Чтобы создать анкету, сначала необходимо приобрести доступ. Сделать это можно перейдя по кнопке \"Доступ\"");
-                return;
-            }
+//            if (userDetails == null) {
+//                botFunctions.sendMessageAndRemoveKeyboard(userId, "Чтобы создать анкету, сначала необходимо приобрести доступ. Сделать это можно перейдя по кнопке \"Доступ\"");
+//                return;
+//            }
 
             // Проверка на то, включена ли анкета
             if (hasBeenRegistered && !userEntity.isActive()) {
